@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💰 Aurababy Market - Multiplayer</title>
+    <title>💰 Aurababy Market - Market Hours Edition</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -868,13 +868,33 @@ body {
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 .flex-gap-10 { gap: 10px; }
 .flex-gap-20 { gap: 20px; }
+
+        /* Market Closed Banner */
+        .market-closed-banner {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        
+        .market-open-banner {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
     <div id="auth-container">
         <div id="auth-box">
             <h1 class="auth-title">💰 Aurababy Market</h1>
-            <p class="auth-subtitle-small">Multiplayer Trading Game</p>
+            <p class="auth-subtitle-small">Market Hours: 9 AM - 9 PM</p>
             
             <div id="login-form">
                 <h3 class="auth-subtitle">Welcome Back!</h3>
@@ -1244,7 +1264,7 @@ window.addEventListener('beforeunload', () => {
     </script>
 
     <script>
-    // MULTIPLAYER MODULE
+    // MULTIPLAYER MODULE WITH MARKET HOURS
 // ===================================
 // MULTIPLAYER FEATURES
 // Global Leaderboard, Trade Hub, Player Trading
@@ -1986,14 +2006,55 @@ window.multiplayer = {
 };
 
 console.log('Multiplayer module loaded! Access via window.multiplayer');
+    
+    // MARKET HOURS LOGIC
+    function isMarketOpen() {
+        const now = new Date();
+        const hour = now.getHours();
+        return hour >= 9 && hour < 21; // 9 AM to 9 PM
+    }
+    
+    function getTimeUntilMarketOpen() {
+        const now = new Date();
+        const hour = now.getHours();
+        
+        if (hour < 9) {
+            // Market opens today at 9 AM
+            const open = new Date();
+            open.setHours(9, 0, 0, 0);
+            return Math.floor((open - now) / 1000);
+        } else {
+            // Market opens tomorrow at 9 AM
+            const open = new Date();
+            open.setDate(open.getDate() + 1);
+            open.setHours(9, 0, 0, 0);
+            return Math.floor((open - now) / 1000);
+        }
+    }
+    
+    function getTimeUntilMarketClose() {
+        const now = new Date();
+        const close = new Date();
+        close.setHours(21, 0, 0, 0);
+        return Math.floor((close - now) / 1000);
+    }
+    
+    function formatTime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        if (hours > 0) {
+            return `${hours}h ${mins}m ${secs}s`;
+        }
+        return `${mins}m ${secs}s`;
+    }
+    
     </script>
 
     <script type="text/babel">
-    // INTEGRATED APP.JS WITH MULTIPLAYER
     const { useState, useEffect } = React;
 
     const AurababyMarket = () => {
-        // Baby data
         const babies = [
             { id: 1, name: 'Aurababy', image: 'https://i.ibb.co/Y4L448c1/aurababy.jpg' },
             { id: 2, name: 'KingDarren', image: 'https://i.ibb.co/1YGkQ5M4/kingdarren.jpg' },
@@ -2022,23 +2083,13 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
         const limitedItems = [
             { id: 'cat', name: 'Lucky Cat', emoji: '🐱', cost: 500, minValue: 300, maxValue: 900 },
             { id: 'dog', name: 'Diamond Dog', emoji: '🐶', cost: 600, minValue: 400, maxValue: 1000 },
-            { id: 'panda', name: 'Rare Panda', emoji: '🐼', cost: 800, minValue: 500, maxValue: 1300 },
-            { id: 'tiger', name: 'Tiger Spirit', emoji: '🐯', cost: 900, minValue: 600, maxValue: 1500 },
-            { id: 'lion', name: 'Lion King', emoji: '🦁', cost: 1000, minValue: 700, maxValue: 1700 },
             { id: 'crown', name: 'Crown Aura', emoji: '👑', cost: 1000, minValue: 700, maxValue: 1700 },
-            { id: 'fire', name: 'Fire Essence', emoji: '🔥', cost: 1500, minValue: 1000, maxValue: 2500 },
-            { id: 'diamond', name: 'Diamond Baby', emoji: '💎', cost: 2500, minValue: 2000, maxValue: 4000 },
-            { id: 'cybergod', name: 'Cyber God', emoji: '👾', cost: 15000, minValue: 10000, maxValue: 25000, tier: 'legendary' },
-            { id: 'divinecrown', name: 'Divine Crown', emoji: '🌟', cost: 100000, minValue: 75000, maxValue: 150000, tier: 'divine' }
-            // ... (shortened for space - add all 125 in real version)
+            { id: 'diamond', name: 'Diamond Baby', emoji: '💎', cost: 2500, minValue: 2000, maxValue: 4000 }
         ];
 
-        // State
         const [money, setMoney] = useState(window.gameState.money);
         const [username, setUsername] = useState(window.gameState.username);
         const [portfolio, setPortfolio] = useState(window.gameState.portfolio);
-        const [limitedInventory, setLimitedInventory] = useState(window.gameState.limitedInventory);
-        const [limitedMintCounts, setLimitedMintCounts] = useState(window.gameState.limitedMintCounts);
         const [tradeHistory, setTradeHistory] = useState(window.gameState.tradeHistory);
         const [highestMoney, setHighestMoney] = useState(window.gameState.highestMoney);
         const [highestNetWorth, setHighestNetWorth] = useState(window.gameState.highestNetWorth);
@@ -2049,41 +2100,26 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
             return p;
         });
         
-        const [limitedValues, setLimitedValues] = useState(() => {
-            const values = {};
-            limitedItems.forEach(item => {
-                values[item.id] = (item.minValue + item.maxValue) / 2;
-            });
-            return values;
-        });
+        // MARKET HOURS STATE
+        const [marketOpen, setMarketOpen] = useState(isMarketOpen());
+        const [timeUntilChange, setTimeUntilChange] = useState(0);
         
-        const [projectedBabies, setProjectedBabies] = useState([]);
         const [currentView, setCurrentView] = useState('market');
         const [selectedBaby, setSelectedBaby] = useState(null);
-        
-        // MULTIPLAYER STATE
         const [leaderboard, setLeaderboard] = useState([]);
-        const [tradeAds, setTradeAds] = useState([]);
-        const [myRank, setMyRank] = useState(null);
 
-        // Sync to Firebase
         useEffect(() => {
-            window.gameState = { money, portfolio, limitedInventory, limitedMintCounts, tradeHistory, highestMoney, highestNetWorth, username, createdAt: window.gameState.createdAt };
-        }, [money, portfolio, limitedInventory, limitedMintCounts, tradeHistory, highestMoney, highestNetWorth, username]);
+            window.gameState = { money, portfolio, tradeHistory, highestMoney, highestNetWorth, username, createdAt: window.gameState.createdAt, limitedInventory: {}, limitedMintCounts: {} };
+        }, [money, portfolio, tradeHistory, highestMoney, highestNetWorth, username]);
 
-        // Helper functions
         const getPortfolioValue = () => {
             let total = 0;
             Object.keys(portfolio).forEach(id => {
                 total += (portfolio[id] || 0) * prices[id];
             });
-            Object.keys(limitedInventory).forEach(id => {
-                total += (limitedInventory[id] || []).length * limitedValues[id];
-            });
             return Math.round(total * 100) / 100;
         };
 
-        // UPDATE LEADERBOARD AFTER TRADE
         const updateLeaderboardData = async () => {
             if (window.multiplayer) {
                 await window.multiplayer.updateLeaderboard({
@@ -2091,14 +2127,18 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
                     money: money,
                     portfolioValue: getPortfolioValue(),
                     portfolio: portfolio,
-                    limitedInventory: limitedInventory,
+                    limitedInventory: {},
                     tradeHistory: tradeHistory
                 });
             }
         };
 
-        // Buy Baby WITH MULTIPLAYER UPDATE
         const buyBaby = async (babyId, babyPrice) => {
+            if (!marketOpen) {
+                alert("Market is closed! Trading hours: 9 AM - 9 PM");
+                return;
+            }
+            
             if (money >= babyPrice) {
                 setMoney(prev => prev - babyPrice);
                 setPortfolio(prev => ({ ...prev, [babyId]: (prev[babyId] || 0) + 1 }));
@@ -2113,12 +2153,16 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
                 }, ...prev]);
                 
                 saveGameData();
-                await updateLeaderboardData(); // MULTIPLAYER UPDATE!
+                await updateLeaderboardData();
             }
         };
 
-        // Sell Baby WITH MULTIPLAYER UPDATE
         const sellBaby = async (babyId, babyPrice) => {
+            if (!marketOpen) {
+                alert("Market is closed! Trading hours: 9 AM - 9 PM");
+                return;
+            }
+            
             if (portfolio[babyId] && portfolio[babyId] > 0) {
                 setMoney(prev => prev + babyPrice);
                 setPortfolio(prev => ({ ...prev, [babyId]: prev[babyId] - 1 }));
@@ -2133,7 +2177,7 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
                 }, ...prev]);
                 
                 saveGameData();
-                await updateLeaderboardData(); // MULTIPLAYER UPDATE!
+                await updateLeaderboardData();
             }
         };
 
@@ -2142,11 +2186,20 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
             const loadPrices = async () => {
                 if (window.multiplayer) {
                     const globalPrices = await window.multiplayer.loadGlobalPrices();
-                    if (globalPrices) {
-                        console.log('Loaded global prices!');
+                    if (globalPrices && globalPrices.babyPrices) {
+                        console.log('✅ Loaded global prices from Firebase!');
                         setPrices(globalPrices.babyPrices);
-                        setLimitedValues(globalPrices.limitedValues);
-                        setProjectedBabies(globalPrices.projectedBabies || []);
+                    } else {
+                        console.log('⚠️ No global prices found, initializing...');
+                        // Initialize prices
+                        const initPrices = {};
+                        babies.forEach(b => { initPrices[b.id] = 150; });
+                        await window.multiplayer.saveGlobalPrices({
+                            babyPrices: initPrices,
+                            limitedValues: {},
+                            projectedBabies: []
+                        });
+                        setPrices(initPrices);
                     }
                 }
             };
@@ -2157,30 +2210,70 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
         useEffect(() => {
             if (window.multiplayer) {
                 const unsubscribe = window.multiplayer.listenToGlobalPrices((newPrices) => {
-                    console.log('Real-time price update!');
-                    setPrices(newPrices.babyPrices);
-                    setLimitedValues(newPrices.limitedValues);
-                    setProjectedBabies(newPrices.projectedBabies || []);
+                    console.log('🔄 Real-time price update received!');
+                    if (newPrices.babyPrices) {
+                        setPrices(newPrices.babyPrices);
+                    }
                 });
                 return () => unsubscribe();
             }
         }, []);
 
-        // SAVE PRICES EVERY 30 MIN
+        // UPDATE PRICES EVERY 30 MIN (ONLY WHEN MARKET OPEN)
         useEffect(() => {
             const priceInterval = setInterval(async () => {
-                // Update prices logic here...
-                if (window.multiplayer) {
-                    await window.multiplayer.saveGlobalPrices({
-                        babyPrices: prices,
-                        limitedValues: limitedValues,
-                        projectedBabies: projectedBabies
+                if (isMarketOpen()) {
+                    console.log('📊 Updating prices...');
+                    setPrices(prevPrices => {
+                        const newPrices = { ...prevPrices };
+                        babies.forEach(baby => {
+                            const changePercent = (Math.random() * 0.3 - 0.15); // -15% to +15%
+                            const priceChange = newPrices[baby.id] * changePercent;
+                            let newPrice = newPrices[baby.id] + priceChange;
+                            if (newPrice < 10) newPrice = 10;
+                            newPrices[baby.id] = Math.round(newPrice * 100) / 100;
+                        });
+                        return newPrices;
                     });
-                    console.log('Saved global prices!');
+                    
+                    // SAVE TO FIREBASE!
+                    if (window.multiplayer) {
+                        await window.multiplayer.saveGlobalPrices({
+                            babyPrices: prices,
+                            limitedValues: {},
+                            projectedBabies: []
+                        });
+                        console.log('✅ Saved prices to Firebase!');
+                    }
                 }
             }, 1800000); // 30 minutes
             return () => clearInterval(priceInterval);
-        }, [prices, limitedValues, projectedBabies]);
+        }, [prices]);
+
+        // MARKET HOURS TIMER
+        useEffect(() => {
+            const timer = setInterval(() => {
+                const isOpen = isMarketOpen();
+                setMarketOpen(isOpen);
+                
+                if (isOpen) {
+                    setTimeUntilChange(getTimeUntilMarketClose());
+                } else {
+                    setTimeUntilChange(getTimeUntilMarketOpen());
+                }
+            }, 1000);
+            return () => clearInterval(timer);
+        }, []);
+
+        // INCOME TIMER (ONLY WHEN MARKET OPEN)
+        useEffect(() => {
+            const timer = setInterval(() => {
+                if (marketOpen) {
+                    setMoney(prev => prev + 200);
+                }
+            }, 90000);
+            return () => clearInterval(timer);
+        }, [marketOpen]);
 
         // LOAD LEADERBOARD
         useEffect(() => {
@@ -2188,39 +2281,12 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
                 const loadLeaders = async () => {
                     const leaders = await window.multiplayer.loadLeaderboard();
                     setLeaderboard(leaders);
-                    
-                    const rank = await window.multiplayer.getMyRank();
-                    setMyRank(rank);
                 };
                 loadLeaders();
-                
-                // Refresh every 30 seconds
                 const interval = setInterval(loadLeaders, 30000);
                 return () => clearInterval(interval);
             }
         }, [currentView]);
-
-        // LOAD TRADE ADS
-        useEffect(() => {
-            if (currentView === 'tradehub' && window.multiplayer) {
-                const loadAds = async () => {
-                    const ads = await window.multiplayer.loadTradeAds();
-                    setTradeAds(ads);
-                };
-                loadAds();
-                
-                const interval = setInterval(loadAds, 30000);
-                return () => clearInterval(interval);
-            }
-        }, [currentView]);
-
-        // Income timer
-        useEffect(() => {
-            const timer = setInterval(() => {
-                setMoney(prev => prev + 200);
-            }, 90000);
-            return () => clearInterval(timer);
-        }, []);
 
         return (
             <div style={{ display: 'flex' }}>
@@ -2232,6 +2298,17 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
                         <div><strong>Cash:</strong><br/>${money.toLocaleString()}</div>
                         <div><strong>Portfolio:</strong><br/>${getPortfolioValue().toLocaleString()}</div>
                         <div><strong>Net Worth:</strong><br/>${(money + getPortfolioValue()).toLocaleString()}</div>
+                        <div style={{ borderTop: '1px solid #7f8c8d', paddingTop: '10px', marginTop: '10px' }}>
+                            <strong>Market Status:</strong><br/>
+                            {marketOpen ? (
+                                <span style={{ color: '#27ae60' }}>🟢 OPEN</span>
+                            ) : (
+                                <span style={{ color: '#e74c3c' }}>🔴 CLOSED</span>
+                            )}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#bdc3c7', marginTop: '5px' }}>
+                            {marketOpen ? 'Closes in: ' : 'Opens in: '}{formatTime(timeUntilChange)}
+                        </div>
                     </div>
 
                     <button onClick={() => setCurrentView('market')} 
@@ -2246,26 +2323,32 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
                         className={`nav-button ${currentView === 'leaderboard' ? 'active' : ''}`}>
                         🏆 Leaderboard
                     </button>
-                    <button onClick={() => setCurrentView('tradehub')} 
-                        className={`nav-button ${currentView === 'tradehub' ? 'active' : ''}`}>
-                        📢 Trade Hub
-                    </button>
                     <button onClick={logoutUser} className="nav-button logout-button">
                         🚪 Logout
                     </button>
                     
                     <div className="sidebar-footer">
-                        Multiplayer Enabled!<br/>
-                        Auto-saves every 30s
+                        Market Hours: 9 AM - 9 PM<br/>
+                        Global Prices Sync!
                     </div>
                 </div>
 
                 <div className="main-content">
-                    {/* MARKET VIEW */}
                     {currentView === 'market' && (
                         <div>
                             <h1 className="view-title">🏪 Baby Market</h1>
-                            <p className="view-subtitle">Prices sync globally every 30 minutes!</p>
+                            
+                            {!marketOpen ? (
+                                <div className="market-closed-banner">
+                                    🔴 <strong>MARKET CLOSED</strong><br/>
+                                    Trading hours: 9 AM - 9 PM<br/>
+                                    Opens in: {formatTime(timeUntilChange)}
+                                </div>
+                            ) : (
+                                <div className="market-open-banner">
+                                    🟢 Market Open | Closes in: {formatTime(timeUntilChange)} | Prices sync globally every 30 min
+                                </div>
+                            )}
                             
                             <div className="card-grid">
                                 {babies.map(baby => {
@@ -2279,8 +2362,9 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
                                             <div className="card-price">${price.toFixed(2)}</div>
                                             {owned > 0 && <div className="card-info">You own: {owned}</div>}
                                             <button onClick={(e) => { e.stopPropagation(); buyBaby(baby.id, price); }}
-                                                disabled={money < price} className="card-button buy-button">
-                                                BUY ${price.toFixed(2)}
+                                                disabled={money < price || !marketOpen} 
+                                                className="card-button buy-button">
+                                                {!marketOpen ? 'MARKET CLOSED' : `BUY $${price.toFixed(2)}`}
                                             </button>
                                         </div>
                                     );
@@ -2289,10 +2373,16 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
                         </div>
                     )}
 
-                    {/* PORTFOLIO VIEW */}
                     {currentView === 'portfolio' && (
                         <div>
                             <h1 className="view-title">📊 Your Portfolio</h1>
+                            
+                            {!marketOpen && (
+                                <div className="market-closed-banner">
+                                    🔴 Market Closed - Cannot sell until 9 AM
+                                </div>
+                            )}
+                            
                             {Object.keys(portfolio).some(id => portfolio[id] > 0) ? (
                                 <div className="card-grid">
                                     {babies.map(baby => {
@@ -2307,8 +2397,9 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
                                                 <div><strong>Quantity:</strong> {quantity}</div>
                                                 <div className="card-price">${(quantity * currentPrice).toFixed(2)}</div>
                                                 <button onClick={() => sellBaby(baby.id, currentPrice)} 
+                                                    disabled={!marketOpen}
                                                     className="card-button sell-button">
-                                                    SELL ${currentPrice.toFixed(2)}
+                                                    {!marketOpen ? 'MARKET CLOSED' : `SELL $${currentPrice.toFixed(2)}`}
                                                 </button>
                                             </div>
                                         );
@@ -2320,17 +2411,10 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
                         </div>
                     )}
 
-                    {/* LEADERBOARD VIEW - WORKING! */}
                     {currentView === 'leaderboard' && (
                         <div>
                             <h1 className="view-title">🏆 Global Leaderboard</h1>
-                            <p className="view-subtitle">Top 10 players by net worth • Updates every 30 seconds</p>
-                            
-                            {myRank && (
-                                <div style={{ background: '#fff3cd', padding: '15px', borderRadius: '10px', marginBottom: '20px' }}>
-                                    <strong>Your Rank: #{myRank.rank}</strong> out of {myRank.totalPlayers} players
-                                </div>
-                            )}
+                            <p className="view-subtitle">Top 10 players by net worth</p>
                             
                             {leaderboard.length > 0 ? (
                                 <div className="leaderboard-table">
@@ -2341,8 +2425,6 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
                                                 <th>Player</th>
                                                 <th>Net Worth</th>
                                                 <th>Trades</th>
-                                                <th>Babies</th>
-                                                <th>Limiteds</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -2352,73 +2434,18 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
                                                     <td><strong>{player.username}</strong> {player.isCurrentUser && '(You)'}</td>
                                                     <td>${player.netWorth.toLocaleString()}</td>
                                                     <td>{player.totalTrades}</td>
-                                                    <td>{player.babiesOwned}</td>
-                                                    <td>{player.limitedsOwned}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
                             ) : (
-                                <div style={{ textAlign: 'center', padding: '40px' }}>
-                                    <div className="loading-spinner"></div>
-                                    <p>Loading leaderboard...</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* TRADE HUB VIEW - WORKING! */}
-                    {currentView === 'tradehub' && (
-                        <div>
-                            <h1 className="view-title">📢 Trade Hub</h1>
-                            <p className="view-subtitle">Post and browse trade offers from other players!</p>
-                            
-                            <button className="form-button" style={{ marginBottom: '20px' }}>
-                                ➕ Post Trade Offer (Coming Soon!)
-                            </button>
-                            
-                            {tradeAds.length > 0 ? (
-                                <div>
-                                    {tradeAds.map(ad => (
-                                        <div key={ad.id} className="trade-ad-card">
-                                            <div className="trade-ad-header">
-                                                <div>
-                                                    <span className={`trade-ad-type trade-type-${ad.type}`}>
-                                                        {ad.type.toUpperCase()}
-                                                    </span>
-                                                    <strong> {ad.username}</strong>
-                                                    {ad.isMyAd && <span style={{ color: '#3498db' }}> (Your Ad)</span>}
-                                                </div>
-                                                <small>{new Date(ad.createdAt?.toDate()).toLocaleDateString()}</small>
-                                            </div>
-                                            <div className="trade-ad-content">
-                                                <p><strong>Description:</strong> {ad.description}</p>
-                                            </div>
-                                            <div className="trade-ad-actions">
-                                                {ad.isMyAd ? (
-                                                    <button className="form-button" style={{ background: '#e74c3c' }}>
-                                                        Delete Ad
-                                                    </button>
-                                                ) : (
-                                                    <button className="form-button">
-                                                        Make Offer
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-                                    <p>No active trade offers. Be the first to post one!</p>
-                                </div>
+                                <p>Loading...</p>
                             )}
                         </div>
                     )}
                 </div>
 
-                {/* Baby Detail Modal */}
                 {selectedBaby && (
                     <div onClick={() => setSelectedBaby(null)} className="modal-overlay">
                         <div onClick={e => e.stopPropagation()} className="modal">
@@ -2427,14 +2454,20 @@ console.log('Multiplayer module loaded! Access via window.multiplayer');
                             <h2 className="mt-20">{selectedBaby.name}</h2>
                             <div className="card-price">${prices[selectedBaby.id].toFixed(2)}</div>
                             <div className="mb-20">You own: {portfolio[selectedBaby.id] || 0}</div>
+                            {!marketOpen && (
+                                <div style={{ background: '#e74c3c', color: 'white', padding: '10px', borderRadius: '5px', marginBottom: '10px' }}>
+                                    Market Closed - Trading starts at 9 AM
+                                </div>
+                            )}
                             <div className="modal-buttons">
                                 <button onClick={() => buyBaby(selectedBaby.id, prices[selectedBaby.id])}
-                                    disabled={money < prices[selectedBaby.id]} 
-                                    className={`modal-button ${money >= prices[selectedBaby.id] ? 'modal-button-primary' : 'modal-button-cancel'}`}>
+                                    disabled={money < prices[selectedBaby.id] || !marketOpen} 
+                                    className={`modal-button ${money >= prices[selectedBaby.id] && marketOpen ? 'modal-button-primary' : 'modal-button-cancel'}`}>
                                     BUY ${prices[selectedBaby.id].toFixed(2)}
                                 </button>
                                 {portfolio[selectedBaby.id] > 0 && (
                                     <button onClick={() => sellBaby(selectedBaby.id, prices[selectedBaby.id])} 
+                                        disabled={!marketOpen}
                                         className="modal-button modal-button-secondary">
                                         SELL ${prices[selectedBaby.id].toFixed(2)}
                                     </button>
