@@ -2582,11 +2582,7 @@ const AurababyMarket = () => {
                                 ❌ Market Closed | Opens in: {formatTime(timeUntilChange)} | Trading Hours: 9 AM - 9 PM
                             </div>
                         )}
-                        
-                        <button onClick={handleForceUpdate} disabled={isUpdating} className="force-update-button">
-                            {isUpdating ? '⏳ UPDATING PRICES...' : '🚀 FORCE UPDATE PRICES NOW!'}
-                        </button>
-                        
+                     
                         <div className="card-grid">
                             {babies.map(baby => {
                                 const price = prices[baby.id] || 150;
