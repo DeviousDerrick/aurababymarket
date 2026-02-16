@@ -372,6 +372,37 @@ body {
     position: relative;
 }
 
+.limited-card.rarity-common {
+    border-color: #95a5a6;
+    background: linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%);
+}
+
+.limited-card.rarity-rare {
+    border-color: #3498db;
+    background: linear-gradient(135deg, #5dade2 0%, #3498db 100%);
+}
+
+.limited-card.rarity-epic {
+    border-color: #9b59b6;
+    background: linear-gradient(135deg, #bb8fce 0%, #9b59b6 100%);
+}
+
+.limited-card.rarity-legendary {
+    border-color: #f39c12;
+    background: linear-gradient(135deg, #f7dc6f 0%, #f39c12 100%);
+}
+
+.limited-card.rarity-divine {
+    border-color: #ff00ff;
+    background: linear-gradient(135deg, #ff00ff 0%, #ff1493 50%, #00ffff 100%);
+    animation: divine-glow 3s ease-in-out infinite;
+}
+
+@keyframes divine-glow {
+    0%, 100% { box-shadow: 0 0 20px #ff00ff; }
+    50% { box-shadow: 0 0 40px #00ffff; }
+}
+
 .limited-emoji {
     font-size: 80px;
     text-align: center;
@@ -389,6 +420,12 @@ body {
     font-size: 12px;
     font-weight: 800;
 }
+
+.limited-tier-badge.rarity-common { background: #95a5a6; color: white; }
+.limited-tier-badge.rarity-rare { background: #3498db; color: white; }
+.limited-tier-badge.rarity-epic { background: #9b59b6; color: white; }
+.limited-tier-badge.rarity-legendary { background: #f39c12; color: black; }
+.limited-tier-badge.rarity-divine { background: linear-gradient(90deg, #ff00ff, #00ffff); color: white; }
 
 .limited-info {
     background: rgba(0,0,0,0.3);
@@ -1110,7 +1147,7 @@ window.addEventListener('beforeunload', () => {
     </script>
 
     <script>
-// MULTIPLAYER FEATURES
+// MULTIPLAYER FEATURES WITH GLOBAL PRICE SYNC
 let multiplayerCurrentUser = null;
 
 // Update on auth change
@@ -1121,6 +1158,132 @@ auth.onAuthStateChanged((user) => {
 });
 
 // ===================================
+// GLOBAL PRICE SYSTEM (SYNCED VIA FIREBASE)
+// ===================================
+
+/**
+ * Initialize global prices if they don't exist
+ * This should only be called once by the system
+ */
+async function initializeGlobalPrices(babyIds, limitedItems) {
+    if (!db) return;
+    
+    try {
+        const priceDoc = await db.collection('globalPrices').doc('current').get();
+        
+        if (!priceDoc.exists) {
+            console.log('🔧 Initializing global prices for the first time...');
+            
+            const babyPrices = {};
+            babyIds.forEach(id => { babyPrices[id] = 150; });
+            
+            const limitedValues = {};
+            limitedItems.forEach(item => {
+                limitedValues[item.id] = (item.minValue + item.maxValue) / 2;
+            });
+            
+            await db.collection('globalPrices').doc('current').set({
+                babyPrices: babyPrices,
+                limitedValues: limitedValues,
+                lastUpdate: firebase.firestore.FieldValue.serverTimestamp(),
+                nextUpdateTime: firebase.firestore.Timestamp.fromDate(
+                    new Date(Date.now() + 30 * 60 * 1000) // 30 minutes from now
+                )
+            });
+            
+            console.log('✅ Global prices initialized!');
+        }
+    } catch (error) {
+        console.error('Initialize prices failed:', error);
+    }
+}
+
+/**
+ * Update global prices (should be called by system every 30 minutes)
+ */
+async function updateGlobalPrices(babies, limitedItems) {
+    if (!db) return;
+    
+    try {
+        const priceDoc = await db.collection('globalPrices').doc('current').get();
+        
+        if (!priceDoc.exists) {
+            console.log('No prices doc, initializing...');
+            await initializeGlobalPrices(babies.map(b => b.id), limitedItems);
+            return;
+        }
+        
+        const currentData = priceDoc.data();
+        const newBabyPrices = { ...currentData.babyPrices };
+        const newLimitedValues = { ...currentData.limitedValues };
+        
+        // Update baby prices
+        babies.forEach(baby => {
+            const changePercent = (Math.random() * 0.3 - 0.15); // -15% to +15%
+            const oldPrice = newBabyPrices[baby.id] || 150;
+            let newPrice = oldPrice + (oldPrice * changePercent);
+            
+            if (newPrice < 10) newPrice = 10;
+            if (newPrice > 1000) newPrice = 1000;
+            
+            newBabyPrices[baby.id] = Math.round(newPrice * 100) / 100;
+        });
+        
+        // Update limited values
+        limitedItems.forEach(item => {
+            const changePercent = (Math.random() * 0.2 - 0.1); // -10% to +10%
+            const oldValue = newLimitedValues[item.id] || (item.minValue + item.maxValue) / 2;
+            let newValue = oldValue + (oldValue * changePercent);
+            
+            if (newValue < item.minValue) newValue = item.minValue;
+            if (newValue > item.maxValue) newValue = item.maxValue;
+            
+            newLimitedValues[item.id] = Math.round(newValue * 100) / 100;
+        });
+        
+        await db.collection('globalPrices').doc('current').update({
+            babyPrices: newBabyPrices,
+            limitedValues: newLimitedValues,
+            lastUpdate: firebase.firestore.FieldValue.serverTimestamp(),
+            nextUpdateTime: firebase.firestore.Timestamp.fromDate(
+                new Date(Date.now() + 30 * 60 * 1000) // 30 minutes from now
+            )
+        });
+        
+        console.log('✅ Global prices updated!');
+        return { babyPrices: newBabyPrices, limitedValues: newLimitedValues };
+    } catch (error) {
+        console.error('Update global prices failed:', error);
+        return null;
+    }
+}
+
+/**
+ * Listen to real-time price updates from Firebase
+ */
+function listenToGlobalPrices(callback) {
+    if (!db) return () => {};
+    
+    const unsubscribe = db.collection('globalPrices').doc('current')
+        .onSnapshot((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                console.log('📊 Received real-time price update!');
+                callback({
+                    babyPrices: data.babyPrices || {},
+                    limitedValues: data.limitedValues || {},
+                    lastUpdate: data.lastUpdate,
+                    nextUpdateTime: data.nextUpdateTime
+                });
+            }
+        }, (error) => {
+            console.error('Price listener error:', error);
+        });
+    
+    return unsubscribe;
+}
+
+// ===================================
 // LEADERBOARD SYSTEM
 // ===================================
 
@@ -1128,7 +1291,7 @@ async function updateLeaderboard(playerData) {
     if (!multiplayerCurrentUser || !db) return;
     
     try {
-        const netWorth = playerData.money + playerData.portfolioValue;
+        const netWorth = playerData.money + playerData.portfolioValue + playerData.limitedValue;
         const totalBabies = Object.values(playerData.portfolio).reduce((sum, qty) => sum + qty, 0);
         const totalLimiteds = Object.values(playerData.limitedInventory).reduce((sum, arr) => sum + arr.length, 0);
         
@@ -1137,6 +1300,7 @@ async function updateLeaderboard(playerData) {
             netWorth: netWorth,
             money: playerData.money,
             portfolioValue: playerData.portfolioValue,
+            limitedValue: playerData.limitedValue,
             totalTrades: playerData.tradeHistory.length,
             babiesOwned: totalBabies,
             limitedsOwned: totalLimiteds,
@@ -1260,6 +1424,9 @@ async function deleteTradeAd(adId) {
 
 // Make functions globally available
 window.multiplayer = {
+    initializeGlobalPrices,
+    updateGlobalPrices,
+    listenToGlobalPrices,
     updateLeaderboard,
     loadLeaderboard,
     postTradeAd,
@@ -1267,7 +1434,7 @@ window.multiplayer = {
     deleteTradeAd
 };
 
-console.log('Multiplayer module loaded!');
+console.log('Multiplayer module with GLOBAL PRICES loaded!');
     </script>
 
     <script type="text/babel">
@@ -1291,22 +1458,29 @@ function getTimeUntilMarketChange() {
     const hour = now.getHours();
     
     if (hour < 9) {
-        // Market opens at 9 AM
         const open = new Date(now);
         open.setHours(9, 0, 0, 0);
         return Math.floor((open - now) / 1000);
     } else if (hour >= 21) {
-        // Market opens tomorrow at 9 AM
         const open = new Date(now);
         open.setDate(open.getDate() + 1);
         open.setHours(9, 0, 0, 0);
         return Math.floor((open - now) / 1000);
     } else {
-        // Market closes at 9 PM
         const close = new Date(now);
         close.setHours(21, 0, 0, 0);
         return Math.floor((close - now) / 1000);
     }
+}
+
+function getTimeUntilNextPriceUpdate(nextUpdateTimestamp) {
+    if (!nextUpdateTimestamp) return 1800; // Default 30 minutes
+    
+    const now = Date.now();
+    const nextUpdate = nextUpdateTimestamp.toMillis ? nextUpdateTimestamp.toMillis() : nextUpdateTimestamp;
+    const diff = Math.floor((nextUpdate - now) / 1000);
+    
+    return diff > 0 ? diff : 0;
 }
 
 const AurababyMarket = () => {
@@ -1336,13 +1510,126 @@ const AurababyMarket = () => {
     ];
 
     const limitedItems = [
-        { id: 'cat', name: 'Lucky Cat', emoji: '🐱', cost: 500, minValue: 300, maxValue: 900, tier: 'Common' },
-        { id: 'dog', name: 'Diamond Dog', emoji: '🐶', cost: 600, minValue: 400, maxValue: 1000, tier: 'Common' },
-        { id: 'panda', name: 'Rare Panda', emoji: '🐼', cost: 800, minValue: 500, maxValue: 1300, tier: 'Rare' },
-        { id: 'crown', name: 'Crown Aura', emoji: '👑', cost: 1000, minValue: 700, maxValue: 1700, tier: 'Rare' },
-        { id: 'fire', name: 'Fire Essence', emoji: '🔥', cost: 1500, minValue: 1000, maxValue: 2500, tier: 'Epic' },
-        { id: 'diamond', name: 'Diamond Baby', emoji: '💎', cost: 2500, minValue: 2000, maxValue: 4000, tier: 'Legendary' }
-    ];
+            // Tier 1: Low Cost ($500-$1500) - COMMON
+            { id: 'cat', name: 'Lucky Cat', emoji: '🐱', cost: 500, minValue: 300, maxValue: 900, rarity: 'Common' },
+            { id: 'dog', name: 'Diamond Dog', emoji: '🐶', cost: 600, minValue: 400, maxValue: 1000, rarity: 'Common' },
+            { id: 'panda', name: 'Rare Panda', emoji: '🐼', cost: 800, minValue: 500, maxValue: 1300, rarity: 'Common' },
+            { id: 'tiger', name: 'Tiger Spirit', emoji: '🐯', cost: 900, minValue: 600, maxValue: 1500, rarity: 'Common' },
+            { id: 'lion', name: 'Lion King', emoji: '🦁', cost: 1000, minValue: 700, maxValue: 1700, rarity: 'Rare' },
+            { id: 'monkey', name: 'Wise Monkey', emoji: '🐵', cost: 550, minValue: 350, maxValue: 950, rarity: 'Common' },
+            { id: 'pig', name: 'Golden Pig', emoji: '🐷', cost: 700, minValue: 450, maxValue: 1200, rarity: 'Common' },
+            { id: 'frog', name: 'Prince Frog', emoji: '🐸', cost: 650, minValue: 400, maxValue: 1100, rarity: 'Common' },
+            { id: 'hamster', name: 'Cute Hamster', emoji: '🐹', cost: 500, minValue: 300, maxValue: 900, rarity: 'Common' },
+            { id: 'rabbit', name: 'Moon Rabbit', emoji: '🐰', cost: 750, minValue: 500, maxValue: 1250, rarity: 'Common' },
+            
+            // Tier 2: Medium Cost ($1000-$2000) - RARE
+            { id: 'crown', name: 'Crown Aura', emoji: '👑', cost: 1000, minValue: 700, maxValue: 1700, rarity: 'Rare' },
+            { id: 'fire', name: 'Fire Essence', emoji: '🔥', cost: 1500, minValue: 1000, maxValue: 2500, rarity: 'Rare' },
+            { id: 'lightning', name: 'Lightning Power', emoji: '⚡', cost: 1800, minValue: 1200, maxValue: 3000, rarity: 'Epic' },
+            { id: 'star', name: 'Star Collector', emoji: '🌟', cost: 2000, minValue: 1500, maxValue: 3500, rarity: 'Epic' },
+            { id: 'paint', name: 'Rare Paint', emoji: '🎨', cost: 1200, minValue: 800, maxValue: 2000, rarity: 'Rare' },
+            { id: 'mask', name: 'Mystery Mask', emoji: '🎭', cost: 1600, minValue: 1100, maxValue: 2800, rarity: 'Rare' },
+            { id: 'music', name: 'Music Note', emoji: '🎵', cost: 1300, minValue: 900, maxValue: 2200, rarity: 'Rare' },
+            { id: 'magic', name: 'Magic Wand', emoji: '🪄', cost: 1700, minValue: 1200, maxValue: 2900, rarity: 'Rare' },
+            { id: 'crystal', name: 'Crystal Ball', emoji: '🔮', cost: 1900, minValue: 1400, maxValue: 3200, rarity: 'Epic' },
+            { id: 'rocket', name: 'Space Rocket', emoji: '🚀', cost: 1500, minValue: 1000, maxValue: 2500, rarity: 'Rare' },
+            
+            // Tier 3: High Cost ($2000-$4000) - EPIC/LEGENDARY
+            { id: 'diamond', name: 'Diamond Baby', emoji: '💎', cost: 2500, minValue: 2000, maxValue: 4000, rarity: 'Legendary' },
+            { id: 'trophy', name: 'Trophy Gold', emoji: '🏆', cost: 3000, minValue: 2500, maxValue: 5000, rarity: 'Legendary' },
+            { id: 'unicorn', name: 'Unicorn Spirit', emoji: '🦄', cost: 2200, minValue: 1700, maxValue: 3800, rarity: 'Epic' },
+            { id: 'rainbow', name: 'Rainbow Aura', emoji: '🌈', cost: 2800, minValue: 2200, maxValue: 4500, rarity: 'Legendary' },
+            { id: 'dragon', name: 'Dragon Power', emoji: '🐉', cost: 3500, minValue: 3000, maxValue: 5500, rarity: 'Divine' },
+            { id: 'gem', name: 'Ruby Gem', emoji: '💍', cost: 2700, minValue: 2100, maxValue: 4300, rarity: 'Legendary' },
+            { id: 'castle', name: 'Royal Castle', emoji: '🏰', cost: 3200, minValue: 2700, maxValue: 5200, rarity: 'Legendary' },
+            { id: 'alien', name: 'Alien Tech', emoji: '👽', cost: 2900, minValue: 2400, maxValue: 4700, rarity: 'Epic' },
+            { id: 'robot', name: 'Robot Future', emoji: '🤖', cost: 2600, minValue: 2000, maxValue: 4200, rarity: 'Epic' },
+            { id: 'phoenix', name: 'Phoenix Rising', emoji: '🦅', cost: 3300, minValue: 2800, maxValue: 5300, rarity: 'Divine' },
+            
+            // Food & Nature - COMMON/RARE
+            { id: 'pizza', name: 'Pizza Paradise', emoji: '🍕', cost: 800, minValue: 500, maxValue: 1300, rarity: 'Common' },
+            { id: 'burger', name: 'Burger King', emoji: '🍔', cost: 750, minValue: 450, maxValue: 1250, rarity: 'Common' },
+            { id: 'sushi', name: 'Sushi Master', emoji: '🍣', cost: 1100, minValue: 700, maxValue: 1800, rarity: 'Rare' },
+            { id: 'cake', name: 'Birthday Cake', emoji: '🎂', cost: 900, minValue: 600, maxValue: 1500, rarity: 'Common' },
+            { id: 'donut', name: 'Sweet Donut', emoji: '🍩', cost: 650, minValue: 400, maxValue: 1100, rarity: 'Common' },
+            { id: 'icecream', name: 'Ice Cream', emoji: '🍦', cost: 700, minValue: 450, maxValue: 1200, rarity: 'Common' },
+            { id: 'cookie', name: 'Magic Cookie', emoji: '🍪', cost: 600, minValue: 350, maxValue: 1000, rarity: 'Common' },
+            { id: 'candy', name: 'Rare Candy', emoji: '🍬', cost: 550, minValue: 300, maxValue: 950, rarity: 'Common' },
+            { id: 'watermelon', name: 'Summer Melon', emoji: '🍉', cost: 850, minValue: 550, maxValue: 1400, rarity: 'Common' },
+            { id: 'strawberry', name: 'Berry Sweet', emoji: '🍓', cost: 700, minValue: 400, maxValue: 1200, rarity: 'Common' },
+            
+            // Objects & Tools - RARE
+            { id: 'key', name: 'Golden Key', emoji: '🔑', cost: 1400, minValue: 1000, maxValue: 2300, rarity: 'Rare' },
+            { id: 'lock', name: 'Ancient Lock', emoji: '🔒', cost: 1300, minValue: 900, maxValue: 2200, rarity: 'Rare' },
+            { id: 'bomb', name: 'Boom Bomb', emoji: '💣', cost: 1100, minValue: 700, maxValue: 1900, rarity: 'Rare' },
+            { id: 'gift', name: 'Mystery Gift', emoji: '🎁', cost: 1500, minValue: 1000, maxValue: 2500, rarity: 'Rare' },
+            { id: 'balloon', name: 'Party Balloon', emoji: '🎈', cost: 600, minValue: 350, maxValue: 1000, rarity: 'Common' },
+            { id: 'dice', name: 'Lucky Dice', emoji: '🎲', cost: 900, minValue: 600, maxValue: 1500, rarity: 'Common' },
+            { id: 'magnify', name: 'Magnifier', emoji: '🔍', cost: 800, minValue: 500, maxValue: 1300, rarity: 'Common' },
+            { id: 'scissors', name: 'Gold Scissors', emoji: '✂️', cost: 750, minValue: 450, maxValue: 1250, rarity: 'Common' },
+            { id: 'hammer', name: 'Thor Hammer', emoji: '🔨', cost: 1200, minValue: 800, maxValue: 2000, rarity: 'Rare' },
+            { id: 'wrench', name: 'Master Wrench', emoji: '🔧', cost: 950, minValue: 600, maxValue: 1600, rarity: 'Common' },
+            
+            // Sports & Activities - RARE
+            { id: 'soccer', name: 'Soccer Star', emoji: '⚽', cost: 1100, minValue: 700, maxValue: 1800, rarity: 'Rare' },
+            { id: 'basketball', name: 'Hoop Dreams', emoji: '🏀', cost: 1200, minValue: 800, maxValue: 2000, rarity: 'Rare' },
+            { id: 'football', name: 'Football Pro', emoji: '🏈', cost: 1150, minValue: 750, maxValue: 1900, rarity: 'Rare' },
+            { id: 'tennis', name: 'Tennis Ace', emoji: '🎾', cost: 1000, minValue: 650, maxValue: 1700, rarity: 'Rare' },
+            { id: 'baseball', name: 'Home Run', emoji: '⚾', cost: 1050, minValue: 700, maxValue: 1750, rarity: 'Rare' },
+            { id: 'bowling', name: 'Strike King', emoji: '🎳', cost: 900, minValue: 600, maxValue: 1500, rarity: 'Common' },
+            { id: 'golf', name: 'Golf Master', emoji: '⛳', cost: 1300, minValue: 900, maxValue: 2200, rarity: 'Rare' },
+            { id: 'ski', name: 'Ski Champion', emoji: '⛷️', cost: 1400, minValue: 1000, maxValue: 2300, rarity: 'Rare' },
+            { id: 'surf', name: 'Wave Rider', emoji: '🏄', cost: 1250, minValue: 850, maxValue: 2100, rarity: 'Rare' },
+            { id: 'bike', name: 'Speed Bike', emoji: '🚴', cost: 1100, minValue: 700, maxValue: 1850, rarity: 'Rare' },
+            
+            // Weather & Nature Elements - EPIC
+            { id: 'sun', name: 'Sunny Day', emoji: '☀️', cost: 1600, minValue: 1100, maxValue: 2700, rarity: 'Epic' },
+            { id: 'moon', name: 'Moon Light', emoji: '🌙', cost: 1700, minValue: 1200, maxValue: 2900, rarity: 'Epic' },
+            { id: 'cloud', name: 'Cloud Nine', emoji: '☁️', cost: 800, minValue: 500, maxValue: 1300, rarity: 'Common' },
+            { id: 'snow', name: 'Snowflake', emoji: '❄️', cost: 1000, minValue: 650, maxValue: 1700, rarity: 'Rare' },
+            { id: 'thunder', name: 'Thunder Storm', emoji: '⛈️', cost: 1500, minValue: 1000, maxValue: 2500, rarity: 'Rare' },
+            { id: 'tornado', name: 'Tornado Spin', emoji: '🌪️', cost: 1800, minValue: 1300, maxValue: 3000, rarity: 'Epic' },
+            { id: 'ocean', name: 'Ocean Wave', emoji: '🌊', cost: 1400, minValue: 950, maxValue: 2400, rarity: 'Rare' },
+            { id: 'volcano', name: 'Volcano Blast', emoji: '🌋', cost: 2000, minValue: 1500, maxValue: 3300, rarity: 'Epic' },
+            { id: 'earth', name: 'Planet Earth', emoji: '🌍', cost: 2500, minValue: 2000, maxValue: 4000, rarity: 'Legendary' },
+            { id: 'comet', name: 'Comet Tail', emoji: '☄️', cost: 2200, minValue: 1700, maxValue: 3700, rarity: 'Epic' },
+            
+            // Symbols & Emojis - RARE/EPIC
+            { id: 'heart', name: 'Love Heart', emoji: '❤️', cost: 1200, minValue: 800, maxValue: 2000, rarity: 'Rare' },
+            { id: 'sparkle', name: 'Sparkle Shine', emoji: '✨', cost: 1100, minValue: 700, maxValue: 1850, rarity: 'Rare' },
+            { id: 'check', name: 'Check Mark', emoji: '✅', cost: 900, minValue: 600, maxValue: 1500, rarity: 'Common' },
+            { id: 'cross', name: 'Red Cross', emoji: '❌', cost: 850, minValue: 550, maxValue: 1400, rarity: 'Common' },
+            { id: 'warn', name: 'Warning Sign', emoji: '⚠️', cost: 950, minValue: 600, maxValue: 1600, rarity: 'Common' },
+            { id: 'recycle', name: 'Eco Recycle', emoji: '♻️', cost: 1000, minValue: 650, maxValue: 1700, rarity: 'Rare' },
+            { id: 'peace', name: 'Peace Sign', emoji: '☮️', cost: 1300, minValue: 900, maxValue: 2200, rarity: 'Rare' },
+            { id: 'infinity', name: 'Infinity Loop', emoji: '♾️', cost: 2100, minValue: 1600, maxValue: 3600, rarity: 'Epic' },
+            { id: 'atom', name: 'Atom Power', emoji: '⚛️', cost: 1900, minValue: 1400, maxValue: 3200, rarity: 'Epic' },
+            { id: 'yin', name: 'Yin Yang', emoji: '☯️', cost: 1800, minValue: 1300, maxValue: 3000, rarity: 'Epic' },
+            
+            // Flowers & Plants - RARE
+            { id: 'rose', name: 'Red Rose', emoji: '🌹', cost: 1100, minValue: 700, maxValue: 1850, rarity: 'Rare' },
+            { id: 'tulip', name: 'Tulip Bloom', emoji: '🌷', cost: 1000, minValue: 650, maxValue: 1700, rarity: 'Rare' },
+            { id: 'sunflower', name: 'Sunflower', emoji: '🌻', cost: 950, minValue: 600, maxValue: 1600, rarity: 'Rare' },
+            { id: 'cherry', name: 'Cherry Blossom', emoji: '🌸', cost: 1200, minValue: 800, maxValue: 2000, rarity: 'Rare' },
+            { id: 'bouquet', name: 'Flower Bouquet', emoji: '💐', cost: 1300, minValue: 900, maxValue: 2200, rarity: 'Rare' },
+            { id: 'cactus', name: 'Desert Cactus', emoji: '🌵', cost: 800, minValue: 500, maxValue: 1300, rarity: 'Common' },
+            { id: 'tree', name: 'Life Tree', emoji: '🌳', cost: 1400, minValue: 1000, maxValue: 2300, rarity: 'Rare' },
+            { id: 'palm', name: 'Palm Tree', emoji: '🌴', cost: 1100, minValue: 700, maxValue: 1850, rarity: 'Rare' },
+            { id: 'leaf', name: 'Lucky Leaf', emoji: '🍀', cost: 900, minValue: 600, maxValue: 1500, rarity: 'Common' },
+            { id: 'maple', name: 'Maple Leaf', emoji: '🍁', cost: 950, minValue: 625, maxValue: 1600, rarity: 'Common' },
+            
+            // Tech & Future - EPIC/LEGENDARY
+            { id: 'computer', name: 'Super Computer', emoji: '💻', cost: 1500, minValue: 1000, maxValue: 2500, rarity: 'Rare' },
+            { id: 'phone', name: 'Smart Phone', emoji: '📱', cost: 1200, minValue: 800, maxValue: 2000, rarity: 'Rare' },
+            { id: 'camera', name: 'Pro Camera', emoji: '📷', cost: 1300, minValue: 900, maxValue: 2200, rarity: 'Rare' },
+            { id: 'battery', name: 'Power Battery', emoji: '🔋', cost: 1000, minValue: 650, maxValue: 1700, rarity: 'Rare' },
+            { id: 'satellite', name: 'Satellite', emoji: '🛰️', cost: 2000, minValue: 1500, maxValue: 3300, rarity: 'Epic' },
+            { id: 'ufo', name: 'UFO Ship', emoji: '🛸', cost: 2400, minValue: 1900, maxValue: 3900, rarity: 'Legendary' },
+            { id: 'game', name: 'Game Console', emoji: '🎮', cost: 1400, minValue: 1000, maxValue: 2300, rarity: 'Rare' },
+            { id: 'joystick', name: 'Joystick Pro', emoji: '🕹️', cost: 1100, minValue: 700, maxValue: 1850, rarity: 'Rare' },
+            { id: 'dvd', name: 'Retro DVD', emoji: '💿', cost: 800, minValue: 500, maxValue: 1300, rarity: 'Common' },
+            { id: 'vr', name: 'VR Goggles', emoji: '🥽', cost: 1800, minValue: 1300, maxValue: 3000, rarity: 'Epic' }
+          ];
 
     const [money, setMoney] = useState(window.gameState?.money || 1000);
     const [username, setUsername] = useState(window.gameState?.username || 'Player');
@@ -1350,25 +1637,17 @@ const AurababyMarket = () => {
     const [limitedInventory, setLimitedInventory] = useState(window.gameState?.limitedInventory || {});
     const [tradeHistory, setTradeHistory] = useState(window.gameState?.tradeHistory || []);
     
-    const [prices, setPrices] = useState(() => {
-        const p = {};
-        babies.forEach(baby => { p[baby.id] = 150; });
-        return p;
-    });
-    
-    const [limitedValues, setLimitedValues] = useState(() => {
-        const values = {};
-        limitedItems.forEach(item => {
-            values[item.id] = (item.minValue + item.maxValue) / 2;
-        });
-        return values;
-    });
+    // PRICES FROM FIREBASE
+    const [prices, setPrices] = useState({});
+    const [limitedValues, setLimitedValues] = useState({});
+    const [nextUpdateTime, setNextUpdateTime] = useState(null);
     
     const [marketOpen, setMarketOpen] = useState(isMarketOpen());
     const [timeUntilChange, setTimeUntilChange] = useState(getTimeUntilMarketChange());
-    const [timeUntilPriceUpdate, setTimeUntilPriceUpdate] = useState(1800); // 30 minutes
+    const [timeUntilPriceUpdate, setTimeUntilPriceUpdate] = useState(1800);
     
     const [currentView, setCurrentView] = useState('market');
+    const [limitedFilter, setLimitedFilter] = useState('all');
     const [selectedBaby, setSelectedBaby] = useState(null);
     const [selectedLimited, setSelectedLimited] = useState(null);
     
@@ -1379,6 +1658,94 @@ const AurababyMarket = () => {
     const [tradeAdDesc, setTradeAdDesc] = useState('');
     const [tradeAdOffering, setTradeAdOffering] = useState('');
     const [tradeAdLooking, setTradeAdLooking] = useState('');
+    
+    const [pricesLoaded, setPricesLoaded] = useState(false);
+
+    // ===================================
+    // LOAD GLOBAL PRICES FROM FIREBASE
+    // ===================================
+    
+    useEffect(() => {
+        console.log('🔥 Initializing GLOBAL PRICE SYNC...');
+        
+        // Initialize prices if needed
+        window.multiplayer.initializeGlobalPrices(babies.map(b => b.id), limitedItems);
+        
+        // Listen to real-time price updates
+        const unsubscribe = window.multiplayer.listenToGlobalPrices((priceData) => {
+            console.log('📊 Got price update from Firebase!', priceData);
+            setPrices(priceData.babyPrices);
+            setLimitedValues(priceData.limitedValues);
+            setNextUpdateTime(priceData.nextUpdateTime);
+            setPricesLoaded(true);
+        });
+        
+        return () => unsubscribe();
+    }, []);
+    
+    // ===================================
+    // PRICE UPDATE COUNTDOWN
+    // ===================================
+    
+    useEffect(() => {
+        const countdown = setInterval(() => {
+            if (nextUpdateTime) {
+                const remaining = getTimeUntilNextPriceUpdate(nextUpdateTime);
+                setTimeUntilPriceUpdate(remaining);
+            }
+        }, 1000);
+        
+        return () => clearInterval(countdown);
+    }, [nextUpdateTime]);
+    
+    // ===================================
+    // TRIGGER GLOBAL PRICE UPDATE EVERY 30 MINUTES
+    // ===================================
+    
+    useEffect(() => {
+        // Only ONE user needs to trigger this, but Firebase will sync to everyone
+        const priceUpdater = setInterval(() => {
+            if (marketOpen) {
+                console.log('⏰ 30 minutes passed! Triggering global price update...');
+                window.multiplayer.updateGlobalPrices(babies, limitedItems);
+            }
+        }, 30 * 60 * 1000); // 30 minutes
+        
+        return () => clearInterval(priceUpdater);
+    }, [marketOpen]);
+
+    // ===================================
+    // MARKET STATUS CHECK
+    // ===================================
+    
+    useEffect(() => {
+        const statusCheck = setInterval(() => {
+            const nowOpen = isMarketOpen();
+            if (nowOpen !== marketOpen) {
+                setMarketOpen(nowOpen);
+                if (nowOpen) {
+                    console.log('🔔 Market is now OPEN!');
+                } else {
+                    console.log('🔔 Market is now CLOSED!');
+                }
+            }
+            setTimeUntilChange(getTimeUntilMarketChange());
+        }, 60000); // Check every minute
+
+        return () => clearInterval(statusCheck);
+    }, [marketOpen]);
+
+    // Income timer - $200 every 90 seconds
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setMoney(prev => {
+                const newMoney = prev + 200;
+                window.gameState.money = newMoney;
+                return newMoney;
+            });
+        }, 90000);
+        return () => clearInterval(timer);
+    }, []);
 
     const getPortfolioValue = () => {
         let total = 0;
@@ -1420,16 +1787,15 @@ const AurababyMarket = () => {
             };
             setTradeHistory(prev => [newTrade, ...prev]);
             
-            // Update game state
             window.gameState.money = newMoney;
             window.gameState.portfolio = newPortfolio;
             window.gameState.tradeHistory = [newTrade, ...tradeHistory];
             
-            // Update leaderboard
-            updateLeaderboard({
+            window.multiplayer.updateLeaderboard({
                 username,
                 money: newMoney,
                 portfolioValue: getPortfolioValue(),
+                limitedValue: getLimitedValue(),
                 portfolio: newPortfolio,
                 limitedInventory,
                 tradeHistory: [newTrade, ...tradeHistory]
@@ -1460,16 +1826,15 @@ const AurababyMarket = () => {
             };
             setTradeHistory(prev => [newTrade, ...prev]);
             
-            // Update game state
             window.gameState.money = newMoney;
             window.gameState.portfolio = newPortfolio;
             window.gameState.tradeHistory = [newTrade, ...tradeHistory];
             
-            // Update leaderboard
-            updateLeaderboard({
+            window.multiplayer.updateLeaderboard({
                 username,
                 money: newMoney,
                 portfolioValue: getPortfolioValue(),
+                limitedValue: getLimitedValue(),
                 portfolio: newPortfolio,
                 limitedInventory,
                 tradeHistory: [newTrade, ...tradeHistory]
@@ -1499,7 +1864,6 @@ const AurababyMarket = () => {
             };
             setTradeHistory(prev => [newTrade, ...prev]);
             
-            // Update game state
             window.gameState.money = newMoney;
             window.gameState.limitedInventory = newInventory;
             window.gameState.tradeHistory = [newTrade, ...tradeHistory];
@@ -1526,107 +1890,10 @@ const AurababyMarket = () => {
         };
         setTradeHistory(prev => [newTrade, ...prev]);
         
-        // Update game state
         window.gameState.money = newMoney;
         window.gameState.limitedInventory = newInventory;
         window.gameState.tradeHistory = [newTrade, ...tradeHistory];
     };
-
-    // Price update system - every 30 minutes
-    useEffect(() => {
-        console.log('🔥 REAL MODE: Prices update every 30 MINUTES, Market: 9 AM - 9 PM');
-        
-        // Check market status every minute
-        const statusCheck = setInterval(() => {
-            const nowOpen = isMarketOpen();
-            if (nowOpen !== marketOpen) {
-                setMarketOpen(nowOpen);
-                if (nowOpen) {
-                    console.log('🔔 Market is now OPEN!');
-                } else {
-                    console.log('🔔 Market is now CLOSED!');
-                }
-            }
-            setTimeUntilChange(getTimeUntilMarketChange());
-        }, 60000); // Check every minute
-
-        // Countdown timer (updates every second)
-        const countdown = setInterval(() => {
-            setTimeUntilPriceUpdate(prev => {
-                if (prev <= 1) {
-                    return 1800; // Reset to 30 minutes
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        // Price update every 30 minutes
-        const priceInterval = setInterval(() => {
-            if (!marketOpen) {
-                console.log('⏸️ Market closed - prices frozen');
-                return;
-            }
-            
-            console.log('📈 30 MINUTES PASSED! UPDATING PRICES NOW!');
-            
-            setPrices(prevPrices => {
-                const newPrices = { ...prevPrices };
-                
-                babies.forEach(baby => {
-                    const changePercent = (Math.random() * 0.3 - 0.15); // -15% to +15%
-                    const oldPrice = newPrices[baby.id];
-                    let newPrice = oldPrice + (oldPrice * changePercent);
-                    
-                    if (newPrice < 10) newPrice = 10;
-                    if (newPrice > 1000) newPrice = 1000;
-                    
-                    newPrices[baby.id] = Math.round(newPrice * 100) / 100;
-                });
-                
-                return newPrices;
-            });
-            
-            // Update limited values
-            setLimitedValues(prevValues => {
-                const newValues = { ...prevValues };
-                
-                limitedItems.forEach(item => {
-                    const changePercent = (Math.random() * 0.2 - 0.1);
-                    const oldValue = newValues[item.id];
-                    let newValue = oldValue + (oldValue * changePercent);
-                    
-                    if (newValue < item.minValue) newValue = item.minValue;
-                    if (newValue > item.maxValue) newValue = item.maxValue;
-                    
-                    newValues[item.id] = Math.round(newValue * 100) / 100;
-                });
-                
-                return newValues;
-            });
-            
-            setTimeUntilPriceUpdate(1800);
-            console.log('✅ All prices updated!');
-            
-        }, 1800000); // 30 minutes in milliseconds
-
-        return () => {
-            clearInterval(statusCheck);
-            clearInterval(countdown);
-            clearInterval(priceInterval);
-        };
-    }, [marketOpen]);
-
-    // Income timer - $200 every 90 seconds
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setMoney(prev => {
-                const newMoney = prev + 200;
-                window.gameState.money = newMoney;
-                return newMoney;
-            });
-        }, 90000);
-        return () => clearInterval(timer);
-    }, []);
 
     // Load leaderboard
     useEffect(() => {
@@ -1674,6 +1941,20 @@ const AurababyMarket = () => {
             }
         }
     };
+    
+    const getFilteredLimiteds = () => {
+        if (limitedFilter === 'all') return limitedItems;
+        return limitedItems.filter(item => item.rarity.toLowerCase() === limitedFilter);
+    };
+
+    if (!pricesLoaded) {
+        return (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+                <div className="loading-spinner"></div>
+                <h2>Loading global prices...</h2>
+            </div>
+        );
+    }
 
     return (
         <div style={{ display: 'flex' }}>
@@ -1698,7 +1979,7 @@ const AurababyMarket = () => {
                         <br/><br/>
                         {marketOpen && (
                             <>
-                                <strong>Next Price Update:</strong><br/>
+                                <strong>Global Price Update:</strong><br/>
                                 <span style={{color: '#3498db'}}>{formatTime(timeUntilPriceUpdate)}</span>
                             </>
                         )}
@@ -1711,7 +1992,7 @@ const AurababyMarket = () => {
                 </button>
                 <button onClick={() => setCurrentView('limited')} 
                     className={`nav-button ${currentView === 'limited' ? 'active' : ''}`}>
-                    💎 Limited Store
+                    💎 Limited Store ({limitedItems.length})
                 </button>
                 <button onClick={() => setCurrentView('portfolio')} 
                     className={`nav-button ${currentView === 'portfolio' ? 'active' : ''}`}>
@@ -1736,7 +2017,7 @@ const AurababyMarket = () => {
                 
                 <div className="sidebar-footer">
                     Hours: 9 AM - 9 PM<br/>
-                    Prices update every 30 min
+                    GLOBAL prices sync every 30min
                 </div>
             </div>
 
@@ -1747,7 +2028,7 @@ const AurababyMarket = () => {
                         
                         {marketOpen ? (
                             <div className="market-open-banner">
-                                ✅ Market Open | Next price update: {formatTime(timeUntilPriceUpdate)} | Closes in: {formatTime(timeUntilChange)}
+                                ✅ Market Open | Global price update: {formatTime(timeUntilPriceUpdate)} | Closes in: {formatTime(timeUntilChange)}
                             </div>
                         ) : (
                             <div className="market-closed-banner">
@@ -1757,7 +2038,7 @@ const AurababyMarket = () => {
                         
                         <div className="card-grid">
                             {babies.map(baby => {
-                                const price = prices[baby.id];
+                                const price = prices[baby.id] || 150;
                                 const owned = portfolio[baby.id] || 0;
                                 
                                 return (
@@ -1781,21 +2062,48 @@ const AurababyMarket = () => {
                 {currentView === 'limited' && (
                     <div>
                         <h1 className="view-title">💎 Limited Edition Store</h1>
-                        <p className="view-subtitle">Buy collectible limited items with unique serial numbers. Values fluctuate!</p>
+                        <p className="view-subtitle">{limitedItems.length} unique collectible items with serial numbers. Values fluctuate globally!</p>
+                        
+                        <div className="tabs">
+                            <button onClick={() => setLimitedFilter('all')} 
+                                className={`tab-button ${limitedFilter === 'all' ? 'active' : ''}`}>
+                                All ({limitedItems.length})
+                            </button>
+                            <button onClick={() => setLimitedFilter('common')} 
+                                className={`tab-button ${limitedFilter === 'common' ? 'active' : ''}`}>
+                                Common ({limitedItems.filter(i => i.rarity === 'Common').length})
+                            </button>
+                            <button onClick={() => setLimitedFilter('rare')} 
+                                className={`tab-button ${limitedFilter === 'rare' ? 'active' : ''}`}>
+                                Rare ({limitedItems.filter(i => i.rarity === 'Rare').length})
+                            </button>
+                            <button onClick={() => setLimitedFilter('epic')} 
+                                className={`tab-button ${limitedFilter === 'epic' ? 'active' : ''}`}>
+                                Epic ({limitedItems.filter(i => i.rarity === 'Epic').length})
+                            </button>
+                            <button onClick={() => setLimitedFilter('legendary')} 
+                                className={`tab-button ${limitedFilter === 'legendary' ? 'active' : ''}`}>
+                                Legendary ({limitedItems.filter(i => i.rarity === 'Legendary').length})
+                            </button>
+                            <button onClick={() => setLimitedFilter('divine')} 
+                                className={`tab-button ${limitedFilter === 'divine' ? 'active' : ''}`}>
+                                Divine ({limitedItems.filter(i => i.rarity === 'Divine').length})
+                            </button>
+                        </div>
                         
                         <div className="card-grid">
-                            {limitedItems.map(item => {
+                            {getFilteredLimiteds().map(item => {
                                 const owned = limitedInventory[item.id]?.length || 0;
-                                const value = limitedValues[item.id];
+                                const value = limitedValues[item.id] || (item.minValue + item.maxValue) / 2;
                                 
                                 return (
-                                    <div key={item.id} className="card limited-card" onClick={() => setSelectedLimited(item)}>
-                                        <div className="limited-tier-badge">{item.tier}</div>
+                                    <div key={item.id} className={`card limited-card rarity-${item.rarity.toLowerCase()}`} onClick={() => setSelectedLimited(item)}>
+                                        <div className={`limited-tier-badge rarity-${item.rarity.toLowerCase()}`}>{item.rarity}</div>
                                         <div className="limited-emoji">{item.emoji}</div>
                                         <h3>{item.name}</h3>
                                         <div className="limited-info">
                                             <div style={{fontSize: '14px'}}>Cost: ${item.cost}</div>
-                                            <div style={{fontSize: '14px'}}>Current Value: ${value.toFixed(2)}</div>
+                                            <div style={{fontSize: '14px'}}>Value: ${value.toFixed(2)}</div>
                                             <div style={{fontSize: '12px', marginTop: '5px'}}>Range: ${item.minValue}-${item.maxValue}</div>
                                         </div>
                                         {owned > 0 && <div style={{textAlign: 'center', marginTop: '10px'}}>You own: {owned}</div>}
@@ -1821,7 +2129,7 @@ const AurababyMarket = () => {
                                 {babies.map(baby => {
                                     const quantity = portfolio[baby.id] || 0;
                                     if (quantity === 0) return null;
-                                    const currentPrice = prices[baby.id];
+                                    const currentPrice = prices[baby.id] || 150;
                                     
                                     return (
                                         <div key={baby.id} className="card">
@@ -1851,17 +2159,17 @@ const AurababyMarket = () => {
                                     if (items.length === 0) return null;
                                     
                                     return items.map((owned, idx) => (
-                                        <div key={`${item.id}-${idx}`} className="card limited-card">
-                                            <div className="limited-tier-badge">{item.tier}</div>
+                                        <div key={`${item.id}-${idx}`} className={`card limited-card rarity-${item.rarity.toLowerCase()}`}>
+                                            <div className={`limited-tier-badge rarity-${item.rarity.toLowerCase()}`}>{item.rarity}</div>
                                             <div className="limited-emoji">{item.emoji}</div>
                                             <h3>{item.name}</h3>
                                             <div className="limited-serial">
                                                 Serial: #{owned.serial}
                                             </div>
-                                            <div className="card-price">${limitedValues[item.id].toFixed(2)}</div>
+                                            <div className="card-price">${(limitedValues[item.id] || 0).toFixed(2)}</div>
                                             <button onClick={() => sellLimited(item.id, owned.serial, limitedValues[item.id])} 
                                                 className="card-button sell-button">
-                                                SELL ${limitedValues[item.id].toFixed(2)}
+                                                SELL ${(limitedValues[item.id] || 0).toFixed(2)}
                                             </button>
                                         </div>
                                     ));
@@ -2031,20 +2339,20 @@ const AurababyMarket = () => {
                         <img src={selectedBaby.image} alt={selectedBaby.name} 
                             style={{ width: '100%', maxHeight: '300px', objectFit: 'cover', borderRadius: '10px' }} />
                         <h2 className="mt-20">{selectedBaby.name}</h2>
-                        <div className="card-price">${prices[selectedBaby.id].toFixed(2)}</div>
+                        <div className="card-price">${(prices[selectedBaby.id] || 150).toFixed(2)}</div>
                         <div className="mb-20">You own: {portfolio[selectedBaby.id] || 0}</div>
                         {!marketOpen && <div className="text-danger mb-20">⚠️ Market is closed</div>}
                         <div className="modal-buttons">
                             <button onClick={() => { buyBaby(selectedBaby.id, prices[selectedBaby.id]); setSelectedBaby(null); }}
                                 disabled={money < prices[selectedBaby.id] || !marketOpen} 
                                 className={`modal-button ${money >= prices[selectedBaby.id] && marketOpen ? 'modal-button-primary' : 'modal-button-cancel'}`}>
-                                BUY ${prices[selectedBaby.id].toFixed(2)}
+                                BUY ${(prices[selectedBaby.id] || 150).toFixed(2)}
                             </button>
                             {portfolio[selectedBaby.id] > 0 && (
                                 <button onClick={() => { sellBaby(selectedBaby.id, prices[selectedBaby.id]); setSelectedBaby(null); }} 
                                     disabled={!marketOpen}
                                     className="modal-button modal-button-secondary">
-                                    SELL ${prices[selectedBaby.id].toFixed(2)}
+                                    SELL ${(prices[selectedBaby.id] || 150).toFixed(2)}
                                 </button>
                             )}
                         </div>
@@ -2058,13 +2366,13 @@ const AurababyMarket = () => {
 
             {selectedLimited && (
                 <div onClick={() => setSelectedLimited(null)} className="modal-overlay">
-                    <div onClick={e => e.stopPropagation()} className="modal limited-card" style={{maxWidth: '500px'}}>
-                        <div className="limited-tier-badge">{selectedLimited.tier}</div>
+                    <div onClick={e => e.stopPropagation()} className={`modal limited-card rarity-${selectedLimited.rarity.toLowerCase()}`} style={{maxWidth: '500px'}}>
+                        <div className={`limited-tier-badge rarity-${selectedLimited.rarity.toLowerCase()}`}>{selectedLimited.rarity}</div>
                         <div className="limited-emoji">{selectedLimited.emoji}</div>
                         <h2 className="mt-20">{selectedLimited.name}</h2>
                         <div className="limited-info">
                             <div>Cost: ${selectedLimited.cost}</div>
-                            <div>Current Value: ${limitedValues[selectedLimited.id].toFixed(2)}</div>
+                            <div>Current Value: ${(limitedValues[selectedLimited.id] || 0).toFixed(2)}</div>
                             <div style={{fontSize: '12px', marginTop: '5px'}}>Value Range: ${selectedLimited.minValue}-${selectedLimited.maxValue}</div>
                             <div style={{fontSize: '12px', marginTop: '10px'}}>You own: {limitedInventory[selectedLimited.id]?.length || 0}</div>
                         </div>
