@@ -1187,11 +1187,21 @@ async function signupUser() {
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-        // Create initial user document
+        // Create initial user document with username
         await db.collection('users').doc(result.user.uid).set({
             username: username,
+            money: 1000,
+            portfolio: {},
+            limitedInventory: {},
+            limitedMintCounts: {},
+            tradeHistory: [],
+            highestMoney: 1000,
+            highestNetWorth: 1000,
+            priceHistory: [],
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+        
+        console.log('✅ Account created with username:', username);
         
     } catch (error) {
         if (error.code === 'auth/email-already-in-use') {
@@ -1275,10 +1285,20 @@ async function loadGameData() {
     
     try {
         const doc = await userDocRef.get();
+        
+        // Get username from email or usernames collection
+        let username = 'Trader';
+        if (currentUserAuth.isAnonymous) {
+            username = 'Guest_' + Date.now();
+        } else if (currentUserAuth.email) {
+            // Extract username from email (username@aurababymarket.app)
+            username = currentUserAuth.email.split('@')[0];
+        }
+        
         if (doc.exists) {
             const data = doc.data();
             window.gameState = {
-                username: data.username || (currentUserAuth.isAnonymous ? 'Guest_' + Date.now() : 'Trader'),
+                username: data.username || username,
                 money: data.money !== undefined ? data.money : 1000,
                 portfolio: data.portfolio || {},
                 limitedInventory: data.limitedInventory || {},
@@ -1289,10 +1309,9 @@ async function loadGameData() {
                 priceHistory: data.priceHistory || [],
                 createdAt: data.createdAt || null
             };
-            console.log('Game data loaded!', window.gameState);
+            console.log('✅ Game data loaded!', window.gameState);
         } else {
-            // New user - create initial document
-            const username = currentUserAuth.isAnonymous ? 'Guest_' + Date.now() : 'Trader';
+            // New user - create initial document with proper username
             window.gameState = {
                 username: username,
                 money: 1000,
@@ -1305,10 +1324,11 @@ async function loadGameData() {
                 priceHistory: [],
                 createdAt: new Date()
             };
+            console.log('📝 Creating new user with username:', username);
             await saveGameData();
         }
     } catch (error) {
-        console.error('Load failed:', error);
+        console.error('❌ Load failed:', error);
     }
 }
 
@@ -1316,6 +1336,14 @@ async function saveGameData() {
     if (!userDocRef || !window.gameState) return;
     
     try {
+        console.log('💾 Saving game data...', {
+            username: window.gameState.username,
+            money: window.gameState.money,
+            babiesOwned: Object.values(window.gameState.portfolio).reduce((sum, qty) => sum + qty, 0),
+            limitedsOwned: Object.values(window.gameState.limitedInventory).reduce((sum, arr) => sum + arr.length, 0),
+            trades: window.gameState.tradeHistory.length
+        });
+        
         await userDocRef.set({
             username: window.gameState.username,
             money: window.gameState.money,
@@ -1330,9 +1358,9 @@ async function saveGameData() {
             lastSaved: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
         
-        console.log('Game saved!');
+        console.log('✅ Game saved successfully!');
     } catch (error) {
-        console.error('Save failed:', error);
+        console.error('❌ Save failed:', error);
     }
 }
 
@@ -2023,11 +2051,37 @@ const AurababyMarket = () => {
         { id: 'purse', name: 'Designer Purse', emoji: '👛', cost: 1500, minValue: 1000, maxValue: 2500, rarity: 'Rare' }
     ];
 
-    const [money, setMoney] = useState(window.gameState?.money || 1000);
-    const [username, setUsername] = useState(window.gameState?.username || 'Player');
-    const [portfolio, setPortfolio] = useState(window.gameState?.portfolio || {});
-    const [limitedInventory, setLimitedInventory] = useState(window.gameState?.limitedInventory || {});
-    const [tradeHistory, setTradeHistory] = useState(window.gameState?.tradeHistory || []);
+    const [money, setMoney] = useState(1000);
+    const [username, setUsername] = useState('Player');
+    const [portfolio, setPortfolio] = useState({});
+    const [limitedInventory, setLimitedInventory] = useState({});
+    const [tradeHistory, setTradeHistory] = useState([]);
+    
+    // Load initial state from window.gameState
+    useEffect(() => {
+        if (window.gameState) {
+            console.log('🔄 Loading state from window.gameState:', window.gameState);
+            setUsername(window.gameState.username || 'Player');
+            setMoney(window.gameState.money || 1000);
+            setPortfolio(window.gameState.portfolio || {});
+            setLimitedInventory(window.gameState.limitedInventory || {});
+            setTradeHistory(window.gameState.tradeHistory || []);
+        }
+        
+        // Set up an interval to check for updates from window.gameState
+        const syncInterval = setInterval(() => {
+            if (window.gameState && window.gameState.username !== username) {
+                console.log('🔄 Syncing username:', window.gameState.username);
+                setUsername(window.gameState.username);
+                setMoney(window.gameState.money);
+                setPortfolio(window.gameState.portfolio);
+                setLimitedInventory(window.gameState.limitedInventory);
+                setTradeHistory(window.gameState.tradeHistory);
+            }
+        }, 1000);
+        
+        return () => clearInterval(syncInterval);
+    }, []);
     
     // PRICES FROM FIREBASE
     const [prices, setPrices] = useState({});
@@ -2151,6 +2205,11 @@ const AurababyMarket = () => {
             setMoney(prev => {
                 const newMoney = prev + 200;
                 window.gameState.money = newMoney;
+                console.log('💰 Income received! +$200. New balance:', newMoney);
+                // Save on income update
+                if (typeof saveGameData === 'function') {
+                    saveGameData();
+                }
                 return newMoney;
             });
         }, 90000);
@@ -2201,9 +2260,6 @@ const AurababyMarket = () => {
             const newMoney = money - babyPrice;
             const newPortfolio = { ...portfolio, [babyId]: (portfolio[babyId] || 0) + 1 };
             
-            setMoney(newMoney);
-            setPortfolio(newPortfolio);
-            
             const baby = babies.find(b => b.id === babyId);
             const newTrade = {
                 id: Date.now(),
@@ -2212,11 +2268,20 @@ const AurababyMarket = () => {
                 price: babyPrice,
                 timestamp: new Date().toLocaleString()
             };
-            setTradeHistory(prev => [newTrade, ...prev]);
+            const newTradeHistory = [newTrade, ...tradeHistory];
             
+            // Update React state
+            setMoney(newMoney);
+            setPortfolio(newPortfolio);
+            setTradeHistory(newTradeHistory);
+            
+            // Update window.gameState immediately
             window.gameState.money = newMoney;
             window.gameState.portfolio = newPortfolio;
-            window.gameState.tradeHistory = [newTrade, ...tradeHistory];
+            window.gameState.tradeHistory = newTradeHistory;
+            
+            // Save to Firebase immediately
+            saveGameData();
             
             window.multiplayer.updateLeaderboard({
                 username,
@@ -2225,7 +2290,7 @@ const AurababyMarket = () => {
                 limitedValue: getLimitedValue(),
                 portfolio: newPortfolio,
                 limitedInventory,
-                tradeHistory: [newTrade, ...tradeHistory]
+                tradeHistory: newTradeHistory
             });
         }
     };
@@ -2240,9 +2305,6 @@ const AurababyMarket = () => {
             const newMoney = money + babyPrice;
             const newPortfolio = { ...portfolio, [babyId]: portfolio[babyId] - 1 };
             
-            setMoney(newMoney);
-            setPortfolio(newPortfolio);
-            
             const baby = babies.find(b => b.id === babyId);
             const newTrade = {
                 id: Date.now(),
@@ -2251,11 +2313,20 @@ const AurababyMarket = () => {
                 price: babyPrice,
                 timestamp: new Date().toLocaleString()
             };
-            setTradeHistory(prev => [newTrade, ...prev]);
+            const newTradeHistory = [newTrade, ...tradeHistory];
             
+            // Update React state
+            setMoney(newMoney);
+            setPortfolio(newPortfolio);
+            setTradeHistory(newTradeHistory);
+            
+            // Update window.gameState immediately
             window.gameState.money = newMoney;
             window.gameState.portfolio = newPortfolio;
-            window.gameState.tradeHistory = [newTrade, ...tradeHistory];
+            window.gameState.tradeHistory = newTradeHistory;
+            
+            // Save to Firebase immediately
+            saveGameData();
             
             window.multiplayer.updateLeaderboard({
                 username,
@@ -2264,7 +2335,7 @@ const AurababyMarket = () => {
                 limitedValue: getLimitedValue(),
                 portfolio: newPortfolio,
                 limitedInventory,
-                tradeHistory: [newTrade, ...tradeHistory]
+                tradeHistory: newTradeHistory
             });
         }
     };
@@ -2278,9 +2349,6 @@ const AurababyMarket = () => {
                 [itemId]: [...(limitedInventory[itemId] || []), { serial: serialNumber, purchaseDate: new Date().toISOString() }]
             };
             
-            setMoney(newMoney);
-            setLimitedInventory(newInventory);
-            
             const item = limitedItems.find(i => i.id === itemId);
             const newTrade = {
                 id: Date.now(),
@@ -2289,11 +2357,20 @@ const AurababyMarket = () => {
                 price: itemCost,
                 timestamp: new Date().toLocaleString()
             };
-            setTradeHistory(prev => [newTrade, ...prev]);
+            const newTradeHistory = [newTrade, ...tradeHistory];
             
+            // Update React state
+            setMoney(newMoney);
+            setLimitedInventory(newInventory);
+            setTradeHistory(newTradeHistory);
+            
+            // Update window.gameState immediately
             window.gameState.money = newMoney;
             window.gameState.limitedInventory = newInventory;
-            window.gameState.tradeHistory = [newTrade, ...tradeHistory];
+            window.gameState.tradeHistory = newTradeHistory;
+            
+            // Save to Firebase immediately
+            saveGameData();
         }
     };
 
@@ -2304,9 +2381,6 @@ const AurababyMarket = () => {
             [itemId]: limitedInventory[itemId].filter(item => item.serial !== serialNumber)
         };
         
-        setMoney(newMoney);
-        setLimitedInventory(newInventory);
-        
         const item = limitedItems.find(i => i.id === itemId);
         const newTrade = {
             id: Date.now(),
@@ -2315,11 +2389,20 @@ const AurababyMarket = () => {
             price: value,
             timestamp: new Date().toLocaleString()
         };
-        setTradeHistory(prev => [newTrade, ...prev]);
+        const newTradeHistory = [newTrade, ...tradeHistory];
         
+        // Update React state
+        setMoney(newMoney);
+        setLimitedInventory(newInventory);
+        setTradeHistory(newTradeHistory);
+        
+        // Update window.gameState immediately
         window.gameState.money = newMoney;
         window.gameState.limitedInventory = newInventory;
-        window.gameState.tradeHistory = [newTrade, ...tradeHistory];
+        window.gameState.tradeHistory = newTradeHistory;
+        
+        // Save to Firebase immediately
+        saveGameData();
     };
 
     // Load leaderboard
@@ -2582,7 +2665,11 @@ const AurababyMarket = () => {
                                 ❌ Market Closed | Opens in: {formatTime(timeUntilChange)} | Trading Hours: 9 AM - 9 PM
                             </div>
                         )}
-                     
+                        
+                        <button onClick={handleForceUpdate} disabled={isUpdating} className="force-update-button">
+                            {isUpdating ? '⏳ UPDATING PRICES...' : '🚀 FORCE UPDATE PRICES NOW!'}
+                        </button>
+                        
                         <div className="card-grid">
                             {babies.map(baby => {
                                 const price = prices[baby.id] || 150;
