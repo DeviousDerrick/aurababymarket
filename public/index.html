@@ -18,6 +18,9 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
+    <!-- Load 300 Limited Items -->
+    <script src="limiteds.js"></script>
+    
     <style>
 * {
     margin: 0;
@@ -1389,30 +1392,8 @@ const AurababyMarket = () => {
         { id: 22, name: 'Justicen', image: 'https://i.ibb.co/dwkHnD65/Justicebaby.jpg' }
     ];
 
-    const limitedItems = [
-        // FIRST 100 (keeping original)
-        { id: 'cat', name: 'Lucky Cat', emoji: '🐱', cost: 500, minValue: 300, maxValue: 900, rarity: 'Common' },
-        { id: 'dog', name: 'Diamond Dog', emoji: '🐶', cost: 600, minValue: 400, maxValue: 1000, rarity: 'Common' },
-        { id: 'panda', name: 'Rare Panda', emoji: '🐼', cost: 800, minValue: 500, maxValue: 1300, rarity: 'Common' },
-        { id: 'dragon', name: 'Dragon Power', emoji: '🐉', cost: 3500, minValue: 3000, maxValue: 5500, rarity: 'Divine' },
-        { id: 'phoenix', name: 'Phoenix Rising', emoji: '🦅', cost: 3300, minValue: 2800, maxValue: 5300, rarity: 'Divine' },
-        // 8 DIVINE ITEMS
-        { id: 'godmode', name: 'God Mode', emoji: '🔱', cost: 5000, minValue: 4500, maxValue: 8000, rarity: 'Divine' },
-        { id: 'celestial', name: 'Celestial Crown', emoji: '👼', cost: 4800, minValue: 4200, maxValue: 7500, rarity: 'Divine' },
-        { id: 'eternal', name: 'Eternal Flame', emoji: '🕯️', cost: 4600, minValue: 4000, maxValue: 7200, rarity: 'Divine' },
-        { id: 'cosmic', name: 'Cosmic Energy', emoji: '🌌', cost: 5200, minValue: 4700, maxValue: 8200, rarity: 'Divine' },
-        { id: 'supreme', name: 'Supreme Power', emoji: '⚜️', cost: 4900, minValue: 4400, maxValue: 7800, rarity: 'Divine' },
-        { id: 'divine_sword', name: 'Divine Sword', emoji: '⚔️', cost: 5100, minValue: 4600, maxValue: 8100, rarity: 'Divine' },
-        { id: 'holy_grail', name: 'Holy Grail', emoji: '🏺', cost: 5300, minValue: 4800, maxValue: 8500, rarity: 'Divine' },
-        { id: 'olympus', name: 'Mount Olympus', emoji: '⛰️', cost: 5500, minValue: 5000, maxValue: 9000, rarity: 'Divine' },
-        // Adding more items to total 200...
-        { id: 'trophy', name: 'Trophy Gold', emoji: '🏆', cost: 3000, minValue: 2500, maxValue: 5000, rarity: 'Legendary' },
-        { id: 'diamond', name: 'Diamond Baby', emoji: '💎', cost: 2500, minValue: 2000, maxValue: 4000, rarity: 'Legendary' },
-        { id: 'crown', name: 'Crown Aura', emoji: '👑', cost: 1000, minValue: 700, maxValue: 1700, rarity: 'Rare' },
-        { id: 'fire', name: 'Fire Essence', emoji: '🔥', cost: 1500, minValue: 1000, maxValue: 2500, rarity: 'Rare' },
-        { id: 'star', name: 'Star Collector', emoji: '🌟', cost: 2000, minValue: 1500, maxValue: 3500, rarity: 'Epic' }
-        // ... truncated for space, total should be 200
-    ];
+    // Load 300 limited items from external file
+    const limitedItems = typeof LIMITEDS !== 'undefined' ? LIMITEDS : [];
 
     const [money, setMoney] = useState(1000);
     const [username, setUsername] = useState('Player');
@@ -1859,7 +1840,7 @@ const AurababyMarket = () => {
                     🏪 Market
                 </button>
                 <button onClick={() => setCurrentView('limited')} className={`nav-tab ${currentView === 'limited' ? 'active' : ''}`}>
-                    💎 Limiteds (200)
+                    💎 Limiteds (300)
                 </button>
                 <button onClick={() => setCurrentView('portfolio')} className={`nav-tab ${currentView === 'portfolio' ? 'active' : ''}`}>
                     📊 Portfolio
@@ -1932,11 +1913,11 @@ const AurababyMarket = () => {
                 {currentView === 'limited' && (
                     <div>
                         <h1 className="view-title">💎 Limited Store</h1>
-                        <p className="view-subtitle">200 items! 8 DIVINE rarities! Value changes on purchase!</p>
+                        <p className="view-subtitle">300 items! 8 DIVINE rarities! Value changes on purchase!</p>
                         
                         <div className="tabs">
                             <button onClick={() => setLimitedFilter('all')} className={`tab-button ${limitedFilter === 'all' ? 'active' : ''}`}>
-                                All (200)
+                                All (300)
                             </button>
                             <button onClick={() => setLimitedFilter('divine')} className={`tab-button ${limitedFilter === 'divine' ? 'active' : ''}`}>
                                 🌟 DIVINE 🌟 (8)
