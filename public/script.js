@@ -18,7 +18,7 @@ let currentUserAuth = null;
 let userDocRef = null;
 let gameStateLoaded = false;
 
-console.log('🔥 Firebase initialized!');
+console.log('Firebase initialized!');
 
 // ========================================
 // GAME STATE
@@ -34,6 +34,7 @@ window.gameState = {
     highestMoney: 1000,
     highestNetWorth: 1000,
     priceHistory: [],
+    enhancerInventory: {},
     createdAt: null
 };
 
@@ -58,25 +59,12 @@ async function loginUser() {
     const username = document.getElementById('login-username').value.trim().toLowerCase();
     const password = document.getElementById('login-password').value;
     const errorDiv = document.getElementById('login-error');
-    
-    if (!username || !password) {
-        errorDiv.textContent = 'Please enter username and password';
-        errorDiv.style.display = 'block';
-        return;
-    }
-    
+    if (!username || !password) { errorDiv.textContent = 'Please enter username and password'; errorDiv.style.display = 'block'; return; }
     try {
         errorDiv.style.display = 'none';
-        const email = username + '@aurababymarket.app';
-        await auth.signInWithEmailAndPassword(email, password);
+        await auth.signInWithEmailAndPassword(username + '@aurababymarket.app', password);
     } catch (error) {
-        if (error.code === 'auth/user-not-found') {
-            errorDiv.textContent = 'Username not found';
-        } else if (error.code === 'auth/wrong-password') {
-            errorDiv.textContent = 'Incorrect password';
-        } else {
-            errorDiv.textContent = 'Login failed';
-        }
+        errorDiv.textContent = error.code === 'auth/user-not-found' ? 'Username not found' : error.code === 'auth/wrong-password' ? 'Incorrect password' : 'Login failed';
         errorDiv.style.display = 'block';
     }
 }
@@ -86,71 +74,18 @@ async function signupUser() {
     const password = document.getElementById('signup-password').value;
     const confirmPassword = document.getElementById('signup-confirm').value;
     const errorDiv = document.getElementById('signup-error');
-    
-    if (!username || username.length < 3 || username.length > 20) {
-        errorDiv.textContent = 'Username must be 3-20 characters';
-        errorDiv.style.display = 'block';
-        return;
-    }
-    
-    if (!/^[a-z0-9_]+$/.test(username)) {
-        errorDiv.textContent = 'Username: letters, numbers, underscores only';
-        errorDiv.style.display = 'block';
-        return;
-    }
-    
-    const reserved = ['admin', 'moderator', 'system', 'guest', 'official', 'support'];
-    if (reserved.includes(username)) {
-        errorDiv.textContent = 'Username is reserved';
-        errorDiv.style.display = 'block';
-        return;
-    }
-    
-    if (password.length < 6) {
-        errorDiv.textContent = 'Password must be 6+ characters';
-        errorDiv.style.display = 'block';
-        return;
-    }
-    
-    if (password !== confirmPassword) {
-        errorDiv.textContent = 'Passwords do not match';
-        errorDiv.style.display = 'block';
-        return;
-    }
-    
+    if (!username || username.length < 3 || username.length > 20) { errorDiv.textContent = 'Username must be 3-20 characters'; errorDiv.style.display = 'block'; return; }
+    if (!/^[a-z0-9_]+$/.test(username)) { errorDiv.textContent = 'Username: letters, numbers, underscores only'; errorDiv.style.display = 'block'; return; }
+    if (['admin','moderator','system','guest','official','support'].includes(username)) { errorDiv.textContent = 'Username is reserved'; errorDiv.style.display = 'block'; return; }
+    if (password.length < 6) { errorDiv.textContent = 'Password must be 6+ characters'; errorDiv.style.display = 'block'; return; }
+    if (password !== confirmPassword) { errorDiv.textContent = 'Passwords do not match'; errorDiv.style.display = 'block'; return; }
     try {
         errorDiv.style.display = 'none';
-        const email = username + '@aurababymarket.app';
-        
         const usernameDoc = await db.collection('usernames').doc(username).get();
-        if (usernameDoc.exists) {
-            errorDiv.textContent = 'Username taken';
-            errorDiv.style.display = 'block';
-            return;
-        }
-        
-        const result = await auth.createUserWithEmailAndPassword(email, password);
-        
-        await db.collection('usernames').doc(username).set({
-            uid: result.user.uid,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        await db.collection('users').doc(result.user.uid).set({
-            username: username,
-            money: 1000,
-            portfolio: {},
-            limitedInventory: {},
-            nameTagsOwned: 0,
-            hasChangedName: false,
-            tradeHistory: [],
-            highestMoney: 1000,
-            highestNetWorth: 1000,
-            priceHistory: [],
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        console.log('✅ Account created:', username);
+        if (usernameDoc.exists) { errorDiv.textContent = 'Username taken'; errorDiv.style.display = 'block'; return; }
+        const result = await auth.createUserWithEmailAndPassword(username + '@aurababymarket.app', password);
+        await db.collection('usernames').doc(username).set({ uid: result.user.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        await db.collection('users').doc(result.user.uid).set({ username, money: 1000, portfolio: {}, limitedInventory: {}, nameTagsOwned: 0, hasChangedName: false, tradeHistory: [], highestMoney: 1000, highestNetWorth: 1000, priceHistory: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() });
     } catch (error) {
         errorDiv.textContent = 'Signup failed: ' + error.message;
         errorDiv.style.display = 'block';
@@ -159,20 +94,12 @@ async function signupUser() {
 
 async function loginAnonymous() {
     const errorDiv = document.getElementById('login-error');
-    try {
-        errorDiv.style.display = 'none';
-        await auth.signInAnonymously();
-    } catch (error) {
-        errorDiv.textContent = 'Guest login failed';
-        errorDiv.style.display = 'block';
-    }
+    try { errorDiv.style.display = 'none'; await auth.signInAnonymously(); }
+    catch (error) { errorDiv.textContent = 'Guest login failed'; errorDiv.style.display = 'block'; }
 }
 
 async function logoutUser() {
-    if (confirm('Logout? Your progress is saved.')) {
-        await saveGameData();
-        await auth.signOut();
-    }
+    if (confirm('Logout? Your progress is saved.')) { await saveGameData(); await auth.signOut(); }
 }
 
 // ========================================
@@ -182,23 +109,15 @@ auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUserAuth = user;
         userDocRef = db.collection('users').doc(user.uid);
-        
         document.getElementById('login-form').style.display = 'none';
         document.getElementById('signup-form').style.display = 'none';
         document.getElementById('loading-screen').style.display = 'block';
-        
         await loadGameData();
-        
         document.getElementById('auth-container').style.display = 'none';
         document.getElementById('game-container').style.display = 'block';
-        
-        if (!gameStateLoaded) {
-            gameStateLoaded = true;
-        }
+        if (!gameStateLoaded) gameStateLoaded = true;
     } else {
-        currentUserAuth = null;
-        userDocRef = null;
-        gameStateLoaded = false;
+        currentUserAuth = null; userDocRef = null; gameStateLoaded = false;
         document.getElementById('auth-container').style.display = 'flex';
         document.getElementById('game-container').style.display = 'none';
         showLogin();
@@ -207,362 +126,260 @@ auth.onAuthStateChanged(async (user) => {
 
 async function loadGameData() {
     if (!userDocRef) return;
-    
     try {
         const doc = await userDocRef.get();
-        
-        let username = 'Trader';
-        if (currentUserAuth.isAnonymous) {
-            username = 'Guest_' + Date.now();
-        } else if (currentUserAuth.email) {
-            username = currentUserAuth.email.split('@')[0];
-        }
-        
+        let username = currentUserAuth.isAnonymous ? 'Guest_' + Date.now() : (currentUserAuth.email || '').split('@')[0] || 'Trader';
         if (doc.exists) {
             const data = doc.data();
-            window.gameState = {
-                username: data.username || username,
-                money: data.money !== undefined ? data.money : 1000,
-                portfolio: data.portfolio || {},
-                limitedInventory: data.limitedInventory || {},
-                nameTagsOwned: data.nameTagsOwned || 0,
-                hasChangedName: data.hasChangedName || false,
-                tradeHistory: data.tradeHistory || [],
-                highestMoney: data.highestMoney || 1000,
-                highestNetWorth: data.highestNetWorth || 1000,
-                priceHistory: data.priceHistory || [],
-                createdAt: data.createdAt || null
-            };
-            console.log('✅ Loaded:', window.gameState.username, '$' + window.gameState.money);
+            window.gameState = { username: data.username || username, money: data.money !== undefined ? data.money : 1000, portfolio: data.portfolio || {}, limitedInventory: data.limitedInventory || {}, nameTagsOwned: data.nameTagsOwned || 0, hasChangedName: data.hasChangedName || false, tradeHistory: data.tradeHistory || [], highestMoney: data.highestMoney || 1000, highestNetWorth: data.highestNetWorth || 1000, priceHistory: data.priceHistory || [], createdAt: data.createdAt || null };
         } else {
-            window.gameState = {
-                username: username,
-                money: 1000,
-                portfolio: {},
-                limitedInventory: {},
-                nameTagsOwned: 0,
-                hasChangedName: false,
-                tradeHistory: [],
-                highestMoney: 1000,
-                highestNetWorth: 1000,
-                priceHistory: [],
-                createdAt: new Date()
-            };
-            console.log('📝 New user:', username);
+            window.gameState = { username, money: 1000, portfolio: {}, limitedInventory: {}, nameTagsOwned: 0, hasChangedName: false, tradeHistory: [], highestMoney: 1000, highestNetWorth: 1000, priceHistory: [], createdAt: new Date() };
             await saveGameData();
         }
-    } catch (error) {
-        console.error('❌ Load failed:', error);
-    }
+    } catch (error) { console.error('Load failed:', error); }
 }
 
 async function saveGameData() {
     if (!userDocRef || !window.gameState) return;
-    
     try {
-        await userDocRef.set({
-            username: window.gameState.username,
-            money: window.gameState.money,
-            portfolio: window.gameState.portfolio,
-            limitedInventory: window.gameState.limitedInventory,
-            nameTagsOwned: window.gameState.nameTagsOwned,
-            hasChangedName: window.gameState.hasChangedName,
-            tradeHistory: window.gameState.tradeHistory,
-            highestMoney: window.gameState.highestMoney,
-            highestNetWorth: window.gameState.highestNetWorth,
-            priceHistory: window.gameState.priceHistory,
-            createdAt: window.gameState.createdAt || firebase.firestore.FieldValue.serverTimestamp(),
-            lastSaved: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-        
-        console.log('💾 Saved!');
-    } catch (error) {
-        console.error('❌ Save failed:', error);
-    }
+        await userDocRef.set({ username: window.gameState.username, money: window.gameState.money, portfolio: window.gameState.portfolio, limitedInventory: window.gameState.limitedInventory, nameTagsOwned: window.gameState.nameTagsOwned, hasChangedName: window.gameState.hasChangedName, tradeHistory: window.gameState.tradeHistory, highestMoney: window.gameState.highestMoney, highestNetWorth: window.gameState.highestNetWorth, priceHistory: window.gameState.priceHistory, createdAt: window.gameState.createdAt || firebase.firestore.FieldValue.serverTimestamp(), lastSaved: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    } catch (error) { console.error('Save failed:', error); }
 }
 
-// Auto-save every 30 seconds
-setInterval(() => {
-    if (currentUserAuth && window.gameState) {
-        saveGameData();
-    }
-}, 30000);
-
-// Save on page close
-window.addEventListener('beforeunload', () => {
-    if (currentUserAuth && window.gameState) {
-        saveGameData();
-    }
-});
+setInterval(() => { if (currentUserAuth && window.gameState) saveGameData(); }, 30000);
+window.addEventListener('beforeunload', () => { if (currentUserAuth && window.gameState) saveGameData(); });
 
 // ========================================
-// MULTIPLAYER FUNCTIONS
+// MULTIPLAYER + PRICE FUNCTIONS
 // ========================================
 let multiplayerCurrentUser = null;
-
-auth.onAuthStateChanged((user) => {
-    if (user) {
-        multiplayerCurrentUser = user;
-    }
-});
+auth.onAuthStateChanged((user) => { if (user) multiplayerCurrentUser = user; });
 
 async function initializeGlobalPrices(babyIds, limitedItems) {
     if (!db) return;
-    
     try {
         const priceDoc = await db.collection('globalPrices').doc('current').get();
-        
         if (!priceDoc.exists) {
             const babyPrices = {};
             babyIds.forEach(id => { babyPrices[id] = 150; });
-            
             const limitedValues = {};
-            limitedItems.forEach(item => {
-                limitedValues[item.id] = (item.minValue + item.maxValue) / 2;
-            });
-            
-            await db.collection('globalPrices').doc('current').set({
-                babyPrices: babyPrices,
-                limitedValues: limitedValues,
-                priceHistory: [{
-                    timestamp: Date.now(),
-                    babyPrices: { ...babyPrices },
-                    limitedValues: { ...limitedValues }
-                }],
-                lastUpdate: firebase.firestore.FieldValue.serverTimestamp(),
-                nextUpdateTime: firebase.firestore.Timestamp.fromDate(
-                    new Date(Date.now() + 2 * 60 * 1000)
-                ),
-                updateCount: 0
-            });
+            limitedItems.forEach(item => { limitedValues[item.id] = (item.minValue + item.maxValue) / 2; });
+            await db.collection('globalPrices').doc('current').set({ babyPrices, limitedValues, priceHistory: [{ timestamp: Date.now(), babyPrices: { ...babyPrices }, limitedValues: { ...limitedValues } }], lastUpdate: firebase.firestore.FieldValue.serverTimestamp(), nextUpdateTime: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 5 * 60 * 1000)), updateCount: 0 });
         }
-    } catch (error) {
-        console.error('Init prices failed:', error);
-    }
+    } catch (error) { console.error('Init prices failed:', error); }
 }
 
 async function forceUpdateGlobalPrices(babies, limitedItems) {
     if (!db) return false;
-    
     try {
         const priceDoc = await db.collection('globalPrices').doc('current').get();
-        
-        if (!priceDoc.exists) {
-            await initializeGlobalPrices(babies.map(b => b.id), limitedItems);
-            return true;
-        }
-        
-        const currentData = priceDoc.data();
-        const newBabyPrices = { ...currentData.babyPrices };
-        const newLimitedValues = { ...currentData.limitedValues };
-        
+        if (!priceDoc.exists) { await initializeGlobalPrices(babies.map(b => b.id), limitedItems); return true; }
+        const d = priceDoc.data();
+        const newBP = { ...d.babyPrices };
+        const newLV = { ...d.limitedValues };
         babies.forEach(baby => {
-            const changePercent = (Math.random() * 0.3 - 0.15);
-            const oldPrice = newBabyPrices[baby.id] || 150;
-            let newPrice = oldPrice + (oldPrice * changePercent);
-            
-            if (newPrice < 10) newPrice = 10;
-            if (newPrice > 1000) newPrice = 1000;
-            
-            newBabyPrices[baby.id] = Math.round(newPrice * 100) / 100;
+            let p = (newBP[baby.id] || 150) * (1 + (Math.random() * 0.3 - 0.15));
+            if (p < 10) p = 10; if (p > 1000) p = 1000;
+            newBP[baby.id] = Math.round(p * 100) / 100;
         });
-        
         limitedItems.forEach(item => {
-            const changePercent = (Math.random() * 0.2 - 0.1);
-            const oldValue = newLimitedValues[item.id] || (item.minValue + item.maxValue) / 2;
-            let newValue = oldValue + (oldValue * changePercent);
-            
-            if (newValue < item.minValue) newValue = item.minValue;
-            if (newValue > item.maxValue) newValue = item.maxValue;
-            
-            newLimitedValues[item.id] = Math.round(newValue * 100) / 100;
+            let v = (newLV[item.id] || (item.minValue + item.maxValue) / 2) * (1 + (Math.random() * 0.2 - 0.1));
+            if (v < item.minValue) v = item.minValue; if (v > item.maxValue) v = item.maxValue;
+            newLV[item.id] = Math.round(v * 100) / 100;
         });
-        
-        const priceHistory = currentData.priceHistory || [];
-        priceHistory.push({
-            timestamp: Date.now(),
-            babyPrices: { ...newBabyPrices },
-            limitedValues: { ...newLimitedValues }
-        });
-        
-        if (priceHistory.length > 50) {
-            priceHistory.shift();
-        }
-        
-        await db.collection('globalPrices').doc('current').update({
-            babyPrices: newBabyPrices,
-            limitedValues: newLimitedValues,
-            priceHistory: priceHistory,
-            lastUpdate: firebase.firestore.FieldValue.serverTimestamp(),
-            nextUpdateTime: firebase.firestore.Timestamp.fromDate(
-                new Date(Date.now() + 2 * 60 * 1000)
-            ),
-            updateCount: (currentData.updateCount || 0) + 1
-        });
-        
+        const ph = d.priceHistory || [];
+        ph.push({ timestamp: Date.now(), babyPrices: { ...newBP }, limitedValues: { ...newLV } });
+        if (ph.length > 50) ph.shift();
+        await db.collection('globalPrices').doc('current').update({ babyPrices: newBP, limitedValues: newLV, priceHistory: ph, lastUpdate: firebase.firestore.FieldValue.serverTimestamp(), nextUpdateTime: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 5 * 60 * 1000)), updateCount: (d.updateCount || 0) + 1 });
         return true;
-    } catch (error) {
-        console.error('Update failed:', error);
-        return false;
-    }
+    } catch (error) { console.error('Update failed:', error); return false; }
 }
 
 function listenToGlobalPrices(callback) {
     if (!db) return () => {};
-    
-    const unsubscribe = db.collection('globalPrices').doc('current')
-        .onSnapshot((doc) => {
-            if (doc.exists) {
-                const data = doc.data();
-                callback({
-                    babyPrices: data.babyPrices || {},
-                    limitedValues: data.limitedValues || {},
-                    priceHistory: data.priceHistory || [],
-                    lastUpdate: data.lastUpdate,
-                    nextUpdateTime: data.nextUpdateTime,
-                    updateCount: data.updateCount || 0
-                });
-            }
-        });
-    
-    return unsubscribe;
+    return db.collection('globalPrices').doc('current').onSnapshot((doc) => {
+        if (doc.exists) {
+            const d = doc.data();
+            callback({ babyPrices: d.babyPrices || {}, limitedValues: d.limitedValues || {}, priceHistory: d.priceHistory || [], lastUpdate: d.lastUpdate, nextUpdateTime: d.nextUpdateTime, updateCount: d.updateCount || 0 });
+        }
+    });
 }
 
 async function updateLeaderboard(playerData) {
     if (!multiplayerCurrentUser || !db) return;
-    
     try {
         const netWorth = playerData.money + playerData.portfolioValue + playerData.limitedValue;
-        const totalBabies = Object.values(playerData.portfolio).reduce((sum, qty) => sum + qty, 0);
-        const totalLimiteds = Object.values(playerData.limitedInventory).reduce((sum, arr) => sum + arr.length, 0);
-        
-        await db.collection('leaderboard').doc(multiplayerCurrentUser.uid).set({
-            username: playerData.username,
-            netWorth: netWorth,
-            money: playerData.money,
-            portfolioValue: playerData.portfolioValue,
-            limitedValue: playerData.limitedValue,
-            totalTrades: playerData.tradeHistory.length,
-            babiesOwned: totalBabies,
-            limitedsOwned: totalLimiteds,
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-        });
-    } catch (error) {
-        console.error('Leaderboard update failed:', error);
-    }
+        await db.collection('leaderboard').doc(multiplayerCurrentUser.uid).set({ username: playerData.username, netWorth, money: playerData.money, portfolioValue: playerData.portfolioValue, limitedValue: playerData.limitedValue, totalTrades: playerData.tradeHistory.length, babiesOwned: Object.values(playerData.portfolio).reduce((s,q)=>s+q,0), limitedsOwned: Object.values(playerData.limitedInventory).reduce((s,a)=>s+a.length,0), lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
+    } catch (error) { console.error('Leaderboard update failed:', error); }
 }
 
 async function loadLeaderboard() {
     if (!db) return [];
-    
     try {
-        const snapshot = await db.collection('leaderboard')
-            .orderBy('netWorth', 'desc')
-            .limit(10)
-            .get();
-        
+        const snap = await db.collection('leaderboard').orderBy('netWorth','desc').limit(10).get();
         const leaders = [];
-        snapshot.forEach(doc => {
-            leaders.push({ 
-                id: doc.id, 
-                ...doc.data(),
-                isCurrentUser: multiplayerCurrentUser && doc.id === multiplayerCurrentUser.uid
-            });
-        });
-        
+        snap.forEach(doc => leaders.push({ id: doc.id, ...doc.data(), isCurrentUser: multiplayerCurrentUser && doc.id === multiplayerCurrentUser.uid }));
         return leaders;
-    } catch (error) {
-        console.error('Load leaderboard failed:', error);
-        return [];
-    }
+    } catch (error) { return []; }
 }
 
 async function loadAllPlayers() {
     if (!db) return [];
-    
     try {
-        const snapshot = await db.collection('leaderboard')
-            .orderBy('lastUpdated', 'desc')
-            .get();
-        
-        const players = [];
-        const now = Date.now();
-        
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            const lastUpdate = data.lastUpdated ? data.lastUpdated.toMillis() : 0;
-            const isOnline = (now - lastUpdate) < 5 * 60 * 1000; // Online if updated in last 5 mins
-            
-            players.push({ 
-                id: doc.id, 
-                ...data,
-                isOnline: isOnline,
-                isCurrentUser: multiplayerCurrentUser && doc.id === multiplayerCurrentUser.uid
-            });
+        const snap = await db.collection('leaderboard').orderBy('lastUpdated','desc').get();
+        const players = []; const now = Date.now();
+        snap.forEach(doc => {
+            const d = doc.data();
+            const lastUpdate = d.lastUpdated ? d.lastUpdated.toMillis() : 0;
+            players.push({ id: doc.id, ...d, isOnline: (now - lastUpdate) < 5 * 60 * 1000, isCurrentUser: multiplayerCurrentUser && doc.id === multiplayerCurrentUser.uid });
         });
-        
         return players;
-    } catch (error) {
-        console.error('Load players failed:', error);
-        return [];
-    }
+    } catch (error) { return []; }
+}
+
+// ========================================
+// TRADING SYSTEM - FIREBASE FUNCTIONS
+// ========================================
+
+async function sendTradeOffer(toUid, toUsername, myOffer, theirRequest) {
+    if (!multiplayerCurrentUser || !db) return null;
+    try {
+        if (myOffer.length > 6 || theirRequest.length > 6) { alert('Maximum 6 items per side!'); return null; }
+        const ref = await db.collection('tradeOffers').add({
+            fromUid: multiplayerCurrentUser.uid,
+            fromUsername: window.gameState.username,
+            toUid,
+            toUsername,
+            myOffer,
+            theirRequest,
+            status: 'pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return ref.id;
+    } catch (error) { console.error('Send trade failed:', error); return null; }
+}
+
+async function loadMyTrades() {
+    if (!multiplayerCurrentUser || !db) return { sent: [], received: [] };
+    try {
+        const sentSnap = await db.collection('tradeOffers').where('fromUid','==',multiplayerCurrentUser.uid).where('status','==','pending').orderBy('createdAt','desc').get();
+        const recvSnap = await db.collection('tradeOffers').where('toUid','==',multiplayerCurrentUser.uid).where('status','==','pending').orderBy('createdAt','desc').get();
+        const sent = [], received = [];
+        sentSnap.forEach(doc => sent.push({ id: doc.id, ...doc.data() }));
+        recvSnap.forEach(doc => received.push({ id: doc.id, ...doc.data() }));
+        return { sent, received };
+    } catch (error) { return { sent: [], received: [] }; }
+}
+
+function listenToIncomingTrades(callback) {
+    if (!multiplayerCurrentUser || !db) return () => {};
+    return db.collection('tradeOffers')
+        .where('toUid','==',multiplayerCurrentUser.uid)
+        .where('status','==','pending')
+        .onSnapshot(snap => {
+            const trades = [];
+            snap.forEach(doc => trades.push({ id: doc.id, ...doc.data() }));
+            callback(trades);
+        });
+}
+
+async function acceptTrade(tradeId, tradeData) {
+    if (!multiplayerCurrentUser || !db) return false;
+    try {
+        const myDoc = await db.collection('users').doc(multiplayerCurrentUser.uid).get();
+        const theirDoc = await db.collection('users').doc(tradeData.fromUid).get();
+        if (!myDoc.exists || !theirDoc.exists) { alert('Error: User data not found'); return false; }
+        const myData = myDoc.data();
+        const theirData = theirDoc.data();
+
+        // Validate I have what they're requesting
+        for (const item of tradeData.theirRequest) {
+            if (item.type === 'baby') {
+                if ((myData.portfolio?.[item.id] || 0) < item.quantity) { alert(`You don't have enough ${item.name} (need ${item.quantity}, have ${myData.portfolio?.[item.id] || 0})`); return false; }
+            } else if (item.type === 'limited') {
+                if ((myData.limitedInventory?.[item.id]?.length || 0) < item.quantity) { alert(`You don't have enough ${item.name}`); return false; }
+            }
+        }
+        // Validate they still have what they offered
+        for (const item of tradeData.myOffer) {
+            if (item.type === 'baby') {
+                if ((theirData.portfolio?.[item.id] || 0) < item.quantity) { alert(`${tradeData.fromUsername} no longer has enough ${item.name}`); return false; }
+            } else if (item.type === 'limited') {
+                if ((theirData.limitedInventory?.[item.id]?.length || 0) < item.quantity) { alert(`${tradeData.fromUsername} no longer has enough ${item.name}`); return false; }
+            }
+        }
+
+        const myNewPortfolio = { ...myData.portfolio };
+        const myNewLI = JSON.parse(JSON.stringify(myData.limitedInventory || {}));
+        const theirNewPortfolio = { ...theirData.portfolio };
+        const theirNewLI = JSON.parse(JSON.stringify(theirData.limitedInventory || {}));
+
+        // I give them theirRequest items
+        for (const item of tradeData.theirRequest) {
+            if (item.type === 'baby') {
+                myNewPortfolio[item.id] = (myNewPortfolio[item.id] || 0) - item.quantity;
+                theirNewPortfolio[item.id] = (theirNewPortfolio[item.id] || 0) + item.quantity;
+            } else {
+                const toMove = (myNewLI[item.id] || []).splice(0, item.quantity);
+                theirNewLI[item.id] = [...(theirNewLI[item.id] || []), ...toMove];
+            }
+        }
+        // I get their myOffer items
+        for (const item of tradeData.myOffer) {
+            if (item.type === 'baby') {
+                theirNewPortfolio[item.id] = (theirNewPortfolio[item.id] || 0) - item.quantity;
+                myNewPortfolio[item.id] = (myNewPortfolio[item.id] || 0) + item.quantity;
+            } else {
+                const toMove = (theirNewLI[item.id] || []).splice(0, item.quantity);
+                myNewLI[item.id] = [...(myNewLI[item.id] || []), ...toMove];
+            }
+        }
+
+        const batch = db.batch();
+        batch.update(db.collection('users').doc(multiplayerCurrentUser.uid), { portfolio: myNewPortfolio, limitedInventory: myNewLI });
+        batch.update(db.collection('users').doc(tradeData.fromUid), { portfolio: theirNewPortfolio, limitedInventory: theirNewLI });
+        batch.update(db.collection('tradeOffers').doc(tradeId), { status: 'accepted', acceptedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        await batch.commit();
+
+        window.gameState.portfolio = myNewPortfolio;
+        window.gameState.limitedInventory = myNewLI;
+        await saveGameData();
+        return true;
+    } catch (error) { console.error('Accept trade failed:', error); alert('Trade failed: ' + error.message); return false; }
+}
+
+async function declineTrade(tradeId) {
+    if (!db) return;
+    try {
+        await db.collection('tradeOffers').doc(tradeId).update({ status: 'declined', declinedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    } catch (error) { console.error('Decline trade failed:', error); }
 }
 
 window.multiplayer = {
-    initializeGlobalPrices,
-    forceUpdateGlobalPrices,
-    listenToGlobalPrices,
-    updateLeaderboard,
-    loadLeaderboard,
-    loadAllPlayers
+    initializeGlobalPrices, forceUpdateGlobalPrices, listenToGlobalPrices,
+    updateLeaderboard, loadLeaderboard, loadAllPlayers,
+    sendTradeOffer, loadMyTrades, listenToIncomingTrades, acceptTrade, declineTrade
 };
 
-console.log('🎮 Multiplayer ready!');
+console.log('Multiplayer ready!');
 
 // ========================================
 // REACT GAME COMPONENT
 // ========================================
 const { useState, useEffect, useRef } = React;
 
-function isMarketOpen() {
-    const now = new Date();
-    const hour = now.getHours();
-    return hour >= 9 && hour < 21;
-}
-
-function formatTime(seconds) {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}m ${secs}s`;
-}
-
+function isMarketOpen() { const h = new Date().getHours(); return h >= 9 && h < 21; }
+function formatTime(s) { return `${Math.floor(s/60)}m ${s%60}s`; }
 function getTimeUntilMarketChange() {
-    const now = new Date();
-    const hour = now.getHours();
-    
-    if (hour < 9) {
-        const open = new Date(now);
-        open.setHours(9, 0, 0, 0);
-        return Math.floor((open - now) / 1000);
-    } else if (hour >= 21) {
-        const open = new Date(now);
-        open.setDate(open.getDate() + 1);
-        open.setHours(9, 0, 0, 0);
-        return Math.floor((open - now) / 1000);
-    } else {
-        const close = new Date(now);
-        close.setHours(21, 0, 0, 0);
-        return Math.floor((close - now) / 1000);
-    }
+    const now = new Date(); const hour = now.getHours();
+    if (hour < 9) { const o = new Date(now); o.setHours(9,0,0,0); return Math.floor((o-now)/1000); }
+    if (hour >= 21) { const o = new Date(now); o.setDate(o.getDate()+1); o.setHours(9,0,0,0); return Math.floor((o-now)/1000); }
+    const c = new Date(now); c.setHours(21,0,0,0); return Math.floor((c-now)/1000);
 }
-
-function getTimeUntilNextPriceUpdate(nextUpdateTimestamp) {
-    if (!nextUpdateTimestamp) return 120;
-    
-    const now = Date.now();
-    const nextUpdate = nextUpdateTimestamp.toMillis ? nextUpdateTimestamp.toMillis() : nextUpdateTimestamp;
-    const diff = Math.floor((nextUpdate - now) / 1000);
-    
+function getTimeUntilNextPriceUpdate(ts) {
+    if (!ts) return 120;
+    const next = ts.toMillis ? ts.toMillis() : ts;
+    const diff = Math.floor((next - Date.now()) / 1000);
     return diff > 0 ? diff : 0;
 }
 
@@ -589,11 +406,24 @@ const AurababyMarket = () => {
         { id: 19, name: 'JollyBaby', image: 'https://i.ibb.co/bgp5mdQZ/jollybaby.png' },
         { id: 20, name: 'CupidBaby', image: 'https://i.ibb.co/1GbNb2PX/Untitled-4.png' },
         { id: 21, name: 'Judgment Baby', image: 'https://i.ibb.co/TqtxsJ52/judgment.jpg' },
-        { id: 22, name: 'Justicen', image: 'https://i.ibb.co/dwkHnD65/Justicebaby.jpg' }
+        { id: 22, name: 'Justicen', image: 'https://i.ibb.co/dwkHnD65/Justicebaby.jpg' },
+        { id: 23, name: '10k Visitor Baby', image: 'https://i.ibb.co/LXtBYtRS/10kvsitorbaby.jpg' },
+        { id: 24, name: 'Celestial Baby', image: 'https://i.ibb.co/ZrRkg40/celestialbaby.png' },
+        { id: 25, name: 'Divine Baby', image: 'https://i.ibb.co/4wbYY3hJ/divinebaby.png' },
+        { id: 26, name: 'Magma Baby', image: 'https://i.ibb.co/0y0N7y48/magmababy.jpg' },
+        { id: 27, name: 'Electricity Baby', image: 'https://i.ibb.co/VcSNb6Th/electrcitiybaby.jpg' },
+        { id: 28, name: 'Robotic Baby', image: 'https://i.ibb.co/6RGq7HLH/robotbaby.jpg' },
+        { id: 29, name: 'Pirate Baby', image: 'https://i.ibb.co/9HSx5QG5/piratebaby.jpg' },
+        { id: 30, name: 'Vampire Baby', image: 'https://i.ibb.co/JZ8Q7B8/vampirebaby.jpg' },
+        { id: 31, name: 'Golem Baby', image: 'https://i.ibb.co/N6WJfmNm/golembaby.jpg' },
+        { id: 32, name: 'Chrono Warden Baby', image: 'https://i.ibb.co/0RHM9TJJ/chronowardenbaby.jpg' },
+        { id: 33, name: 'Soul Baby', image: 'https://i.ibb.co/zhJ5PpWm/soulbaby.jpg' },
+        { id: 34, name: 'Veil Baby', image: 'https://i.ibb.co/8LxwP1b8/veil.jpg' },
+        { id: 35, name: 'Ringmaster Baby', image: 'https://i.ibb.co/dspvJHkq/fancybaby.jpg' }
     ];
 
-    // Load 300 limited items from external file
     const limitedItems = typeof LIMITEDS !== 'undefined' ? LIMITEDS : [];
+    const allEnhancers = typeof ENHANCERS !== 'undefined' ? ENHANCERS : [];
 
     const [money, setMoney] = useState(1000);
     const [username, setUsername] = useState('Player');
@@ -602,34 +432,40 @@ const AurababyMarket = () => {
     const [portfolio, setPortfolio] = useState({});
     const [limitedInventory, setLimitedInventory] = useState({});
     const [tradeHistory, setTradeHistory] = useState([]);
-    
+    const [enhancerInventory, setEnhancerInventory] = useState({});
     const [prices, setPrices] = useState({});
     const [limitedValues, setLimitedValues] = useState({});
     const [priceHistory, setPriceHistory] = useState([]);
     const [nextUpdateTime, setNextUpdateTime] = useState(null);
     const [updateCount, setUpdateCount] = useState(0);
     const [showUpdateNotice, setShowUpdateNotice] = useState(false);
-    
+    const [pricesLoaded, setPricesLoaded] = useState(false);
     const [marketOpen, setMarketOpen] = useState(isMarketOpen());
     const [timeUntilChange, setTimeUntilChange] = useState(getTimeUntilMarketChange());
     const [timeUntilPriceUpdate, setTimeUntilPriceUpdate] = useState(120);
-    
     const [currentView, setCurrentView] = useState('market');
     const [limitedFilter, setLimitedFilter] = useState('all');
     const [selectedBaby, setSelectedBaby] = useState(null);
     const [selectedLimited, setSelectedLimited] = useState(null);
-    
-    const [leaderboard, setLeaderboard] = useState([]);
-    const [allPlayers, setAllPlayers] = useState([]);
     const [showNameChange, setShowNameChange] = useState(false);
     const [newName, setNewName] = useState('');
-    
-    const [pricesLoaded, setPricesLoaded] = useState(false);
-    
+    const [leaderboard, setLeaderboard] = useState([]);
+    const [allPlayers, setAllPlayers] = useState([]);
+
+    // Trade state
+    const [showTradeModal, setShowTradeModal] = useState(false);
+    const [tradeTarget, setTradeTarget] = useState(null);
+    const [myOffer, setMyOffer] = useState([]);
+    const [theirRequest, setTheirRequest] = useState([]);
+    const [incomingTrades, setIncomingTrades] = useState([]);
+    const [sentTrades, setSentTrades] = useState([]);
+    const [tradeTab, setTradeTab] = useState('players');
+    const [addingSlot, setAddingSlot] = useState(null);
+    const [tradeSuccess, setTradeSuccess] = useState('');
+
     const previousPricesRef = useRef({});
     const chartRef = useRef(null);
 
-    // Load from window.gameState
     useEffect(() => {
         if (window.gameState) {
             setUsername(window.gameState.username || 'Player');
@@ -639,8 +475,8 @@ const AurababyMarket = () => {
             setTradeHistory(window.gameState.tradeHistory || []);
             setNameTagsOwned(window.gameState.nameTagsOwned || 0);
             setHasChangedName(window.gameState.hasChangedName || false);
+            setEnhancerInventory(window.gameState.enhancerInventory || {});
         }
-        
         const syncInterval = setInterval(() => {
             if (window.gameState) {
                 setUsername(window.gameState.username);
@@ -650,406 +486,273 @@ const AurababyMarket = () => {
                 setTradeHistory(window.gameState.tradeHistory);
                 setNameTagsOwned(window.gameState.nameTagsOwned);
                 setHasChangedName(window.gameState.hasChangedName);
+                setEnhancerInventory(window.gameState.enhancerInventory || {});
             }
         }, 1000);
-        
         return () => clearInterval(syncInterval);
     }, []);
-    
-    // Initialize global prices
+
     useEffect(() => {
         window.multiplayer.initializeGlobalPrices(babies.map(b => b.id), limitedItems);
-        
-        const unsubscribe = window.multiplayer.listenToGlobalPrices((priceData) => {
+        const unsub = window.multiplayer.listenToGlobalPrices((priceData) => {
             previousPricesRef.current = { ...prices };
-            
-            setPrices(priceData.babyPrices);
-            setLimitedValues(priceData.limitedValues);
-            setPriceHistory(priceData.priceHistory || []);
-            setNextUpdateTime(priceData.nextUpdateTime);
-            setUpdateCount(priceData.updateCount);
-            setPricesLoaded(true);
-            
-            if (priceData.updateCount > 0) {
-                setShowUpdateNotice(true);
-                setTimeout(() => setShowUpdateNotice(false), 5000);
-            }
+            setPrices(priceData.babyPrices); setLimitedValues(priceData.limitedValues);
+            setPriceHistory(priceData.priceHistory || []); setNextUpdateTime(priceData.nextUpdateTime);
+            setUpdateCount(priceData.updateCount); setPricesLoaded(true);
+            if (priceData.updateCount > 0) { setShowUpdateNotice(true); setTimeout(() => setShowUpdateNotice(false), 5000); }
         });
-        
-        return () => unsubscribe();
+        return () => unsub();
     }, []);
-    
-    // Price countdown
+
     useEffect(() => {
-        const countdown = setInterval(() => {
-            if (nextUpdateTime) {
-                setTimeUntilPriceUpdate(getTimeUntilNextPriceUpdate(nextUpdateTime));
-            }
-        }, 1000);
-        
-        return () => clearInterval(countdown);
+        const t = setInterval(() => { if (nextUpdateTime) setTimeUntilPriceUpdate(getTimeUntilNextPriceUpdate(nextUpdateTime)); }, 1000);
+        return () => clearInterval(t);
     }, [nextUpdateTime]);
-    
-    // Auto price update
+
     useEffect(() => {
         if (!pricesLoaded) return;
-        
-        const priceUpdater = setInterval(() => {
-            if (marketOpen) {
-                window.multiplayer.forceUpdateGlobalPrices(babies, limitedItems);
-            }
-        }, 2 * 60 * 1000);
-        
-        return () => clearInterval(priceUpdater);
+        const t = setInterval(() => { if (marketOpen) window.multiplayer.forceUpdateGlobalPrices(babies, limitedItems); }, 5 * 60 * 1000);
+        return () => clearInterval(t);
     }, [marketOpen, pricesLoaded]);
 
-    // Market check
     useEffect(() => {
-        const statusCheck = setInterval(() => {
-            setMarketOpen(isMarketOpen());
-            setTimeUntilChange(getTimeUntilMarketChange());
-        }, 60000);
-        return () => clearInterval(statusCheck);
+        const t = setInterval(() => { setMarketOpen(isMarketOpen()); setTimeUntilChange(getTimeUntilMarketChange()); }, 60000);
+        return () => clearInterval(t);
     }, []);
 
-    // Income
     useEffect(() => {
-        const timer = setInterval(() => {
-            setMoney(prev => {
-                const newMoney = prev + 200;
-                window.gameState.money = newMoney;
-                saveGameData();
-                return newMoney;
-            });
-        }, 90000);
-        return () => clearInterval(timer);
+        const t = setInterval(() => { setMoney(prev => { const n = prev + 200; window.gameState.money = n; saveGameData(); return n; }); }, 90000);
+        return () => clearInterval(t);
     }, []);
+
+    // Real-time incoming trades listener
+    useEffect(() => {
+        const unsub = window.multiplayer.listenToIncomingTrades((trades) => { setIncomingTrades(trades); });
+        return () => unsub();
+    }, []);
+
+    useEffect(() => {
+        if (currentView === 'leaderboard') window.multiplayer.loadLeaderboard().then(setLeaderboard);
+        if (currentView === 'trade') {
+            window.multiplayer.loadAllPlayers().then(setAllPlayers);
+            window.multiplayer.loadMyTrades().then(({ sent }) => setSentTrades(sent));
+        }
+    }, [currentView]);
 
     const getPortfolioValue = () => {
-        let total = 0;
-        Object.keys(portfolio).forEach(id => {
-            total += (portfolio[id] || 0) * (prices[id] || 0);
-        });
-        return Math.round(total * 100) / 100;
+        let t = 0;
+        Object.keys(portfolio).forEach(id => { t += (portfolio[id] || 0) * (prices[id] || 0); });
+        return Math.round(t * 100) / 100;
     };
-
     const getLimitedValue = () => {
-        let total = 0;
-        Object.keys(limitedInventory).forEach(itemId => {
-            const count = limitedInventory[itemId]?.length || 0;
-            total += count * (limitedValues[itemId] || 0);
-        });
-        return Math.round(total * 100) / 100;
+        let t = 0;
+        Object.keys(limitedInventory).forEach(id => { t += (limitedInventory[id]?.length || 0) * (limitedValues[id] || 0); });
+        return Math.round(t * 100) / 100;
+    };
+    const getPriceChange = (id) => {
+        const o = previousPricesRef.current[id]; const n = prices[id];
+        if (!o || !n || o === n) return null;
+        return { direction: n > o ? 'up' : 'down', percentage: Math.abs(((n - o) / o * 100).toFixed(1)) };
     };
 
-    const buyBaby = (babyId, babyPrice) => {
-        if (!marketOpen) {
-            alert('Market closed! Hours: 9 AM - 9 PM');
-            return;
-        }
-        
-        if (money >= babyPrice) {
-            const newMoney = money - babyPrice;
-            const newPortfolio = { ...portfolio, [babyId]: (portfolio[babyId] || 0) + 1 };
-            
-            const baby = babies.find(b => b.id === babyId);
-            const newTrade = {
-                id: Date.now(),
-                type: 'BUY',
-                babyName: baby.name,
-                price: babyPrice,
-                timestamp: new Date().toLocaleString()
-            };
-            const newTradeHistory = [newTrade, ...tradeHistory];
-            
-            setMoney(newMoney);
-            setPortfolio(newPortfolio);
-            setTradeHistory(newTradeHistory);
-            
-            window.gameState.money = newMoney;
-            window.gameState.portfolio = newPortfolio;
-            window.gameState.tradeHistory = newTradeHistory;
-            
+    const buyBaby = (babyId, price) => {
+        if (!marketOpen) { alert('Market closed! Hours: 9 AM - 9 PM'); return; }
+        if (money >= price) {
+            const nm = money - price;
+            const np = { ...portfolio, [babyId]: (portfolio[babyId] || 0) + 1 };
+            const nt = { id: Date.now(), type: 'BUY', babyName: babies.find(b => b.id === babyId).name, price, timestamp: new Date().toLocaleString() };
+            const nh = [nt, ...tradeHistory];
+            setMoney(nm); setPortfolio(np); setTradeHistory(nh);
+            window.gameState.money = nm; window.gameState.portfolio = np; window.gameState.tradeHistory = nh;
             saveGameData();
-            
-            window.multiplayer.updateLeaderboard({
-                username,
-                money: newMoney,
-                portfolioValue: getPortfolioValue(),
-                limitedValue: getLimitedValue(),
-                portfolio: newPortfolio,
-                limitedInventory,
-                tradeHistory: newTradeHistory
-            });
+            window.multiplayer.updateLeaderboard({ username, money: nm, portfolioValue: getPortfolioValue(), limitedValue: getLimitedValue(), portfolio: np, limitedInventory, tradeHistory: nh });
         }
     };
 
-    const sellBaby = (babyId, babyPrice) => {
-        if (!marketOpen) {
-            alert('Market closed!');
-            return;
-        }
-        
+    const sellBaby = (babyId, price) => {
+        if (!marketOpen) { alert('Market closed!'); return; }
         if (portfolio[babyId] && portfolio[babyId] > 0) {
-            const newMoney = money + babyPrice;
-            const newPortfolio = { ...portfolio, [babyId]: portfolio[babyId] - 1 };
-            
-            const baby = babies.find(b => b.id === babyId);
-            const newTrade = {
-                id: Date.now(),
-                type: 'SELL',
-                babyName: baby.name,
-                price: babyPrice,
-                timestamp: new Date().toLocaleString()
-            };
-            const newTradeHistory = [newTrade, ...tradeHistory];
-            
-            setMoney(newMoney);
-            setPortfolio(newPortfolio);
-            setTradeHistory(newTradeHistory);
-            
-            window.gameState.money = newMoney;
-            window.gameState.portfolio = newPortfolio;
-            window.gameState.tradeHistory = newTradeHistory;
-            
+            const nm = money + price;
+            const np = { ...portfolio, [babyId]: portfolio[babyId] - 1 };
+            const nt = { id: Date.now(), type: 'SELL', babyName: babies.find(b => b.id === babyId).name, price, timestamp: new Date().toLocaleString() };
+            const nh = [nt, ...tradeHistory];
+            setMoney(nm); setPortfolio(np); setTradeHistory(nh);
+            window.gameState.money = nm; window.gameState.portfolio = np; window.gameState.tradeHistory = nh;
             saveGameData();
         }
     };
 
-    const buyLimited = (itemId, itemCost) => {
-        if (money >= itemCost) {
-            const serialNumber = Date.now();
-            const newMoney = money - itemCost;
-            
+    const buyLimited = (itemId, cost) => {
+        if (money >= cost) {
+            const nm = money - cost;
             const item = limitedItems.find(i => i.id === itemId);
-            const newInventory = { 
-                ...limitedInventory, 
-                [itemId]: [...(limitedInventory[itemId] || []), { serial: serialNumber, purchaseDate: new Date().toISOString() }]
-            };
-            
-            const newTrade = {
-                id: Date.now(),
-                type: 'BUY_LIMITED',
-                babyName: item.name + ' #' + serialNumber,
-                price: itemCost,
-                timestamp: new Date().toLocaleString()
-            };
-            const newTradeHistory = [newTrade, ...tradeHistory];
-            
-            setMoney(newMoney);
-            setLimitedInventory(newInventory);
-            setTradeHistory(newTradeHistory);
-            
-            window.gameState.money = newMoney;
-            window.gameState.limitedInventory = newInventory;
-            window.gameState.tradeHistory = newTradeHistory;
-            
+            const serial = Date.now();
+            const ni = { ...limitedInventory, [itemId]: [...(limitedInventory[itemId] || []), { serial, purchaseDate: new Date().toISOString() }] };
+            const nt = { id: Date.now(), type: 'BUY_LIMITED', babyName: item.name + ' #' + serial, price: cost, timestamp: new Date().toLocaleString() };
+            const nh = [nt, ...tradeHistory];
+            setMoney(nm); setLimitedInventory(ni); setTradeHistory(nh);
+            window.gameState.money = nm; window.gameState.limitedInventory = ni; window.gameState.tradeHistory = nh;
             saveGameData();
         }
     };
 
     const handleNameChange = async () => {
-        if (!newName || newName.length < 3 || newName.length > 20) {
-            alert('Username must be 3-20 characters');
-            return;
-        }
-        
-        if (!/^[a-z0-9_]+$/i.test(newName)) {
-            alert('Only letters, numbers, and underscores');
-            return;
-        }
-        
+        if (!newName || newName.length < 3 || newName.length > 20) { alert('Username must be 3-20 characters'); return; }
+        if (!/^[a-z0-9_]+$/i.test(newName)) { alert('Only letters, numbers, underscores'); return; }
         const cost = hasChangedName ? 10000 : 0;
-        
-        if (money < cost) {
-            alert('Not enough money! Need $10,000');
-            return;
-        }
-        
-        const newMoney = money - cost;
-        const newNameTags = hasChangedName ? nameTagsOwned + 1 : nameTagsOwned;
-        
-        setUsername(newName);
-        setMoney(newMoney);
-        setNameTagsOwned(newNameTags);
-        setHasChangedName(true);
-        setShowNameChange(false);
-        setNewName('');
-        
-        window.gameState.username = newName;
-        window.gameState.money = newMoney;
-        window.gameState.nameTagsOwned = newNameTags;
-        window.gameState.hasChangedName = true;
-        
+        if (money < cost) { alert('Not enough money! Need $10,000'); return; }
+        const nm = money - cost;
+        const nnt = hasChangedName ? nameTagsOwned + 1 : nameTagsOwned;
+        setUsername(newName); setMoney(nm); setNameTagsOwned(nnt); setHasChangedName(true); setShowNameChange(false); setNewName('');
+        window.gameState.username = newName; window.gameState.money = nm; window.gameState.nameTagsOwned = nnt; window.gameState.hasChangedName = true;
         saveGameData();
-        
-        alert(hasChangedName ? `Name changed to "${newName}"! +1 Name Tag item!` : `Name set to "${newName}"! (First change is free)`);
+        alert(hasChangedName ? `Name changed to "${newName}"! +1 Name Tag!` : `Name set to "${newName}"! (First change free)`);
     };
 
-    useEffect(() => {
-        if (currentView === 'leaderboard') {
-            window.multiplayer.loadLeaderboard().then(setLeaderboard);
-        } else if (currentView === 'trade') {
-            window.multiplayer.loadAllPlayers().then(setAllPlayers);
+    // ---- TRADING ----
+    const openTradeWith = (player) => {
+        setTradeTarget(player); setMyOffer([]); setTheirRequest([]); setShowTradeModal(true); setAddingSlot(null);
+    };
+
+    const addTradeSlot = (side, type, item, quantity) => {
+        const list = side === 'offer' ? myOffer : theirRequest;
+        if (list.length >= 6 && !list.find(s => s.type === type && s.id === item.id)) { alert('Max 6 items per side!'); setAddingSlot(null); return; }
+        const emoji = type === 'limited' ? item.emoji : '👶';
+        const slot = { type, id: item.id, name: item.name, emoji, quantity };
+        if (side === 'offer') {
+            setMyOffer(prev => {
+                const ex = prev.find(s => s.type === type && s.id === item.id);
+                return ex ? prev.map(s => s.type === type && s.id === item.id ? { ...s, quantity: s.quantity + quantity } : s) : [...prev, slot];
+            });
+        } else {
+            setTheirRequest(prev => {
+                const ex = prev.find(s => s.type === type && s.id === item.id);
+                return ex ? prev.map(s => s.type === type && s.id === item.id ? { ...s, quantity: s.quantity + quantity } : s) : [...prev, slot];
+            });
         }
-    }, [currentView]);
-    
-    const getFilteredLimiteds = () => {
-        if (limitedFilter === 'all') return limitedItems;
-        return limitedItems.filter(item => item.rarity.toLowerCase() === limitedFilter);
-    };
-    
-    const getPriceChange = (babyId) => {
-        const oldPrice = previousPricesRef.current[babyId];
-        const newPrice = prices[babyId];
-        
-        if (!oldPrice || !newPrice || oldPrice === newPrice) return null;
-        
-        const change = ((newPrice - oldPrice) / oldPrice * 100).toFixed(1);
-        return { direction: newPrice > oldPrice ? 'up' : 'down', percentage: Math.abs(change) };
+        setAddingSlot(null);
     };
 
-    // Draw chart for selected item
+    const removeTradeSlot = (side, index) => {
+        if (side === 'offer') setMyOffer(p => p.filter((_,i) => i !== index));
+        else setTheirRequest(p => p.filter((_,i) => i !== index));
+    };
+
+    const submitTradeOffer = async () => {
+        if (!tradeTarget) return;
+        if (myOffer.length === 0 && theirRequest.length === 0) { alert('Add at least one item to the trade!'); return; }
+        for (const slot of myOffer) {
+            if (slot.type === 'baby' && (portfolio[slot.id] || 0) < slot.quantity) { alert(`You don't have ${slot.quantity}x ${slot.name}`); return; }
+            if (slot.type === 'limited' && (limitedInventory[slot.id]?.length || 0) < slot.quantity) { alert(`You don't have ${slot.quantity}x ${slot.name}`); return; }
+        }
+        const offerId = await window.multiplayer.sendTradeOffer(tradeTarget.id, tradeTarget.username, myOffer, theirRequest);
+        if (offerId) {
+            setShowTradeModal(false);
+            setTradeSuccess(`Trade offer sent to ${tradeTarget.username}!`);
+            setTimeout(() => setTradeSuccess(''), 4000);
+            window.multiplayer.loadMyTrades().then(({ sent }) => setSentTrades(sent));
+        } else {
+            alert('Failed to send trade. Try again.');
+        }
+    };
+
+    const handleAcceptTrade = async (trade) => {
+        const ok = await window.multiplayer.acceptTrade(trade.id, trade);
+        if (ok) { setTradeSuccess('Trade accepted! Items have been swapped.'); setTimeout(() => setTradeSuccess(''), 4000); }
+    };
+
+    const handleDeclineTrade = async (tradeId) => {
+        await window.multiplayer.declineTrade(tradeId);
+    };
+
+    const getFilteredLimiteds = () => limitedFilter === 'all' ? limitedItems : limitedItems.filter(i => i.rarity.toLowerCase() === limitedFilter);
+
     useEffect(() => {
         if (chartRef.current && (selectedBaby || selectedLimited) && priceHistory.length > 1) {
             const ctx = chartRef.current.getContext('2d');
             if (window.itemChart) window.itemChart.destroy();
-            
-            const timestamps = priceHistory.map(p => new Date(p.timestamp).toLocaleTimeString());
-            let data = [];
-            let label = '';
-            
-            if (selectedBaby) {
-                data = priceHistory.map(p => p.babyPrices[selectedBaby.id] || 0);
-                label = selectedBaby.name + ' Price';
-            } else if (selectedLimited) {
-                data = priceHistory.map(p => p.limitedValues[selectedLimited.id] || 0);
-                label = selectedLimited.name + ' Value';
-            }
-            
-            window.itemChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: timestamps,
-                    datasets: [{
-                        label: label,
-                        data: data,
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { display: true }
-                    }
-                }
-            });
+            const labels = priceHistory.map(p => new Date(p.timestamp).toLocaleTimeString());
+            let data = [], label = '';
+            if (selectedBaby) { data = priceHistory.map(p => p.babyPrices[selectedBaby.id] || 0); label = selectedBaby.name; }
+            else { data = priceHistory.map(p => p.limitedValues[selectedLimited.id] || 0); label = selectedLimited.name; }
+            window.itemChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label, data, borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.1)', borderWidth: 3, fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: true } });
         }
     }, [selectedBaby, selectedLimited, priceHistory]);
 
-    if (!pricesLoaded) {
-        return (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'white' }}>
-                <div className="loading-spinner"></div>
-                <h2>Loading global prices...</h2>
-            </div>
-        );
-    }
+    if (!pricesLoaded) return (
+        <div style={{ padding: '40px', textAlign: 'center', color: 'white' }}>
+            <div className="loading-spinner"></div>
+            <h2>Loading global prices...</h2>
+        </div>
+    );
+
+    const pendingCount = incomingTrades.length;
+
+    // Inline styles for trade UI
+    const tradeSlotStyle = (color) => ({ background: color === 'red' ? '#fdf2f2' : '#eafaf1', border: `2px solid ${color === 'red' ? '#e74c3c' : '#27ae60'}`, borderRadius: '10px', padding: '10px 12px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' });
+    const pickerItemStyle = { background: 'white', border: '2px solid #e0e0e0', borderRadius: '10px', padding: '10px', cursor: 'pointer', textAlign: 'center', minWidth: '95px', transition: 'border-color 0.2s' };
 
     return (
         <>
+            {/* HEADER */}
             <div className="game-header">
                 <div className="header-left">
-                    <div className="header-title">💰 Aurababy Market</div>
+                    <div className="header-title">Aurababy Market</div>
                     <div className="username-display" onClick={() => setShowNameChange(true)}>
-                        <span>👤</span>
-                        <span>{username}</span>
+                        <span>👤</span><span>{username}</span>
                         {nameTagsOwned > 0 && <span>🏷️{nameTagsOwned}</span>}
                     </div>
                 </div>
                 <div className="header-right">
-                    <div className="header-stat">
-                        <div className="header-stat-label">CASH</div>
-                        <div className="header-stat-value">${money.toLocaleString()}</div>
-                    </div>
-                    <div className="header-stat">
-                        <div className="header-stat-label">NET WORTH</div>
-                        <div className="header-stat-value">${(money + getPortfolioValue() + getLimitedValue()).toLocaleString()}</div>
-                    </div>
+                    <div className="header-stat"><div className="header-stat-label">CASH</div><div className="header-stat-value">${money.toLocaleString()}</div></div>
+                    <div className="header-stat"><div className="header-stat-label">NET WORTH</div><div className="header-stat-value">${(money + getPortfolioValue() + getLimitedValue()).toLocaleString()}</div></div>
                     <button onClick={logoutUser} className="logout-btn">Logout</button>
                 </div>
             </div>
 
+            {/* NAV */}
             <div className="nav-tabs">
-                <button onClick={() => setCurrentView('market')} className={`nav-tab ${currentView === 'market' ? 'active' : ''}`}>
-                    🏪 Market
-                </button>
-                <button onClick={() => setCurrentView('limited')} className={`nav-tab ${currentView === 'limited' ? 'active' : ''}`}>
-                    💎 Limiteds (300)
-                </button>
-                <button onClick={() => setCurrentView('portfolio')} className={`nav-tab ${currentView === 'portfolio' ? 'active' : ''}`}>
-                    📊 Portfolio
-                </button>
-                <button onClick={() => setCurrentView('profile')} className={`nav-tab ${currentView === 'profile' ? 'active' : ''}`}>
-                    👤 Profile
-                </button>
-                <button onClick={() => setCurrentView('trades')} className={`nav-tab ${currentView === 'trades' ? 'active' : ''}`}>
-                    📜 History
-                </button>
-                <button onClick={() => setCurrentView('trade')} className={`nav-tab ${currentView === 'trade' ? 'active' : ''}`}>
-                    🤝 Trade
-                </button>
-                <button onClick={() => setCurrentView('leaderboard')} className={`nav-tab ${currentView === 'leaderboard' ? 'active' : ''}`}>
-                    🏆 Leaderboard
-                </button>
+                {[
+                    ['market','🏪 Market'],
+                    ['limited','💎 Limiteds (300)'],
+                    ['portfolio','📊 Portfolio'],
+                    ['profile','👤 Profile'],
+                    ['trades','📜 History'],
+                    ['trade', pendingCount > 0 ? `🤝 Trade 🔴${pendingCount}` : '🤝 Trade'],
+                    ['leaderboard','🏆 Leaderboard']
+                ].map(([v, label]) => (
+                    <button key={v} onClick={() => setCurrentView(v)} className={`nav-tab ${currentView === v ? 'active' : ''}`}>{label}</button>
+                ))}
             </div>
 
             <div className="main-content">
-                {showUpdateNotice && (
-                    <div className="banner banner-update">
-                        🔥 PRICES UPDATED! #{updateCount} - Watch for changes!
+                {showUpdateNotice && <div className="banner banner-update">🔥 PRICES UPDATED! #{updateCount}</div>}
+                {tradeSuccess && (
+                    <div className="banner" style={{background:'linear-gradient(135deg,#27ae60,#229954)',marginBottom:'15px'}}>
+                        ✅ {tradeSuccess}
                     </div>
                 )}
 
+                {/* MARKET */}
                 {currentView === 'market' && (
                     <div>
                         <h1 className="view-title">🏪 Baby Market</h1>
-                        
-                        {marketOpen ? (
-                            <div className="banner banner-open">
-                                ✅ Market Open | Next update: {formatTime(timeUntilPriceUpdate)} | #{updateCount}
-                            </div>
-                        ) : (
-                            <div className="banner banner-closed">
-                                ❌ Market Closed | Opens in: {formatTime(timeUntilChange)}
-                            </div>
-                        )}
-                        
+                        {marketOpen
+                            ? <div className="banner banner-open">✅ Market Open | Next update: {formatTime(timeUntilPriceUpdate)} | #{updateCount}</div>
+                            : <div className="banner banner-closed">❌ Market Closed | Opens in: {formatTime(timeUntilChange)}</div>}
                         <div className="card-grid">
                             {babies.map(baby => {
                                 const price = prices[baby.id] || 150;
                                 const owned = portfolio[baby.id] || 0;
-                                const priceChange = getPriceChange(baby.id);
-                                
+                                const pc = getPriceChange(baby.id);
                                 return (
                                     <div key={baby.id} className="card" onClick={() => setSelectedBaby(baby)}>
-                                        {priceChange && (
-                                            <div className={`price-badge price-badge-${priceChange.direction}`}>
-                                                {priceChange.direction === 'up' ? '📈' : '📉'} {priceChange.percentage}%
-                                            </div>
-                                        )}
+                                        {pc && <div className={`price-badge price-badge-${pc.direction}`}>{pc.direction === 'up' ? '📈' : '📉'} {pc.percentage}%</div>}
                                         <img src={baby.image} alt={baby.name} className="card-image" />
                                         <h3 className="card-title">{baby.name}</h3>
                                         <div className="card-price">${price.toFixed(2)}</div>
                                         {owned > 0 && <div className="card-info">Owned: {owned}</div>}
-                                        <button onClick={(e) => { e.stopPropagation(); buyBaby(baby.id, price); }}
-                                            disabled={money < price || !marketOpen} 
-                                            className="card-button btn btn-success">
+                                        <button onClick={(e) => { e.stopPropagation(); buyBaby(baby.id, price); }} disabled={money < price || !marketOpen} className="card-button btn btn-success">
                                             {marketOpen ? `BUY $${price.toFixed(2)}` : 'CLOSED'}
                                         </button>
                                     </div>
@@ -1059,51 +762,45 @@ const AurababyMarket = () => {
                     </div>
                 )}
 
-                {currentView === 'limited' && (
+                {/* ENHANCERS */}
+                {currentView === 'enhancers' && (
                     <div>
-                        <h1 className="view-title">💎 Limited Store</h1>
-                        <p className="view-subtitle">300 items! Collection value only - cannot be sold!</p>
-                        
-                        <div className="tabs">
-                            <button onClick={() => setLimitedFilter('all')} className={`tab-button ${limitedFilter === 'all' ? 'active' : ''}`}>
-                                All (300)
-                            </button>
-                            <button onClick={() => setLimitedFilter('divine')} className={`tab-button ${limitedFilter === 'divine' ? 'active' : ''}`}>
-                                🌟 DIVINE 🌟 (8)
-                            </button>
-                            <button onClick={() => setLimitedFilter('legendary')} className={`tab-button ${limitedFilter === 'legendary' ? 'active' : ''}`}>
-                                Legendary
-                            </button>
-                            <button onClick={() => setLimitedFilter('epic')} className={`tab-button ${limitedFilter === 'epic' ? 'active' : ''}`}>
-                                Epic
-                            </button>
-                            <button onClick={() => setLimitedFilter('rare')} className={`tab-button ${limitedFilter === 'rare' ? 'active' : ''}`}>
-                                Rare
-                            </button>
-                            <button onClick={() => setLimitedFilter('common')} className={`tab-button ${limitedFilter === 'common' ? 'active' : ''}`}>
-                                Common
-                            </button>
+                        <h1 className="view-title">🧪 Enhancer Shop</h1>
+                        <p className="view-subtitle">Apply enhancers to your limiteds to permanently boost their value! Enhancers are also tradeable.</p>
+                        <div style={{ background:'white', borderRadius:'15px', padding:'20px', marginBottom:'25px', boxShadow:'0 4px 15px rgba(0,0,0,0.08)', borderLeft:'5px solid #9b59b6' }}>
+                            <h3 style={{ marginBottom:'10px', color:'#2c3e50' }}>⚡ How It Works</h3>
+                            <p style={{ color:'#666', lineHeight:'1.7' }}>Buy an enhancer below → Go to <strong>Portfolio</strong> → Click <strong>Apply Enhancer</strong> on any limited → permanently boosts that item's value! Enhancers can also be traded.</p>
+                            <div style={{ display:'flex', gap:'10px', marginTop:'12px', flexWrap:'wrap' }}>
+                                {[['Common','#95a5a6','7-11%','$1k-2k'],['Rare','#3498db','12-24%','$2.5k-5k'],['Epic','#9b59b6','25-40%','$6k-10k'],['Legendary','#f39c12','50-75%','$11k-25k'],['Divine','#e91e63','100-200%','$30k-50k']].map(([r,c,b,cost]) => (
+                                    <div key={r} style={{ background:c, color:'white', padding:'8px 14px', borderRadius:'20px', fontSize:'13px', fontWeight:'800' }}>{r}: +{b} ({cost})</div>
+                                ))}
+                            </div>
                         </div>
-                        
+                        <div style={{ display:'flex', gap:'15px', marginBottom:'20px', flexWrap:'wrap', alignItems:'center' }}>
+                            <div style={{ background:'white', padding:'12px 20px', borderRadius:'12px', boxShadow:'0 4px 15px rgba(0,0,0,0.08)', fontWeight:'800', fontSize:'16px' }}>
+                                🧪 You Own: {Object.values(enhancerInventory).reduce((s,n) => s+n, 0)} enhancers
+                            </div>
+                        </div>
+                        <div className="tabs" style={{ marginBottom:'20px' }}>
+                            {[['all','All (200)'],['owned','⭐ Owned'],['common','Common'],['rare','Rare'],['epic','Epic'],['legendary','Legendary'],['divine','✨ Divine']].map(([f,label]) => (
+                                <button key={f} onClick={() => setEnhancerFilter(f)} className={`tab-button ${enhancerFilter===f?'active':''}`}>{label}</button>
+                            ))}
+                        </div>
                         <div className="card-grid">
-                            {getFilteredLimiteds().map(item => {
-                                const owned = limitedInventory[item.id]?.length || 0;
-                                const value = limitedValues[item.id] || (item.minValue + item.maxValue) / 2;
-                                
+                            {getFilteredEnhancers().map(enh => {
+                                const owned = enhancerInventory[enh.id] || 0;
+                                const isDivine = enh.rarity === 'Divine';
                                 return (
-                                    <div key={item.id} className={`card limited-card rarity-${item.rarity.toLowerCase()}`} onClick={() => setSelectedLimited(item)}>
-                                        <div className={`limited-badge rarity-${item.rarity.toLowerCase()}`}>{item.rarity}</div>
-                                        <div className="limited-emoji">{item.emoji}</div>
-                                        <h3 className="card-title">{item.name}</h3>
-                                        <div style={{textAlign: 'center', marginBottom: '10px'}}>
-                                            <div style={{fontSize: '14px'}}>Cost: ${item.cost}</div>
-                                            <div style={{fontSize: '14px'}}>Value: ${value.toFixed(2)}</div>
-                                        </div>
-                                        {owned > 0 && <div style={{textAlign: 'center', color: 'white'}}>Owned: {owned}</div>}
-                                        <button onClick={(e) => { e.stopPropagation(); buyLimited(item.id, item.cost); }}
-                                            disabled={money < item.cost} 
-                                            className="card-button btn btn-success">
-                                            BUY ${item.cost}
+                                    <div key={enh.id} style={{ background: getEnhancerRarityBg(enh.rarity), borderRadius:'18px', padding:'18px', color:'white', position:'relative', boxShadow: isDivine ? '0 0 30px rgba(255,0,255,0.6)' : '0 4px 15px rgba(0,0,0,0.15)', animation: isDivine ? 'divine-glow 3s ease-in-out infinite' : 'none' }}>
+                                        <div style={{ position:'absolute', top:'12px', right:'12px', background:'rgba(0,0,0,0.3)', padding:'4px 10px', borderRadius:'12px', fontSize:'11px', fontWeight:'800' }}>{enh.rarity}</div>
+                                        <div style={{ fontSize:'54px', textAlign:'center', marginBottom:'10px' }}>{enh.emoji}</div>
+                                        <h3 style={{ textAlign:'center', fontSize:'16px', marginBottom:'8px', fontWeight:'800' }}>{enh.name}</h3>
+                                        <div style={{ textAlign:'center', background:'rgba(0,0,0,0.25)', borderRadius:'20px', padding:'7px 14px', marginBottom:'10px', fontSize:'22px', fontWeight:'800' }}>+{enh.boost}% VALUE</div>
+                                        <div style={{ fontSize:'12px', opacity:0.85, textAlign:'center', marginBottom:'8px' }}>Category: {enh.category}</div>
+                                        {owned > 0 && <div style={{ textAlign:'center', background:'rgba(255,255,255,0.3)', borderRadius:'10px', padding:'5px', marginBottom:'8px', fontWeight:'800', fontSize:'14px' }}>✅ Owned: {owned}</div>}
+                                        <button onClick={() => buyEnhancer(enh.id)} disabled={money < enh.cost}
+                                            style={{ width:'100%', padding:'12px', border:'none', borderRadius:'10px', background: money>=enh.cost ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.25)', color: money>=enh.cost ? '#2c3e50' : 'rgba(255,255,255,0.6)', fontWeight:'800', fontSize:'15px', cursor: money>=enh.cost ? 'pointer' : 'not-allowed' }}>
+                                            {money >= enh.cost ? `BUY $${enh.cost.toLocaleString()}` : `Need $${enh.cost.toLocaleString()}`}
                                         </button>
                                     </div>
                                 );
@@ -1112,76 +809,85 @@ const AurababyMarket = () => {
                     </div>
                 )}
 
+                {/* LIMITEDS */}
+                {currentView === 'limited' && (
+                    <div>
+                        <h1 className="view-title">💎 Limited Store</h1>
+                        <p className="view-subtitle">300 items! Limiteds can be traded with other players.</p>
+                        <div className="tabs">
+                            {[['all','All (300)'],['divine','🌟 Divine (8)'],['legendary','Legendary'],['epic','Epic'],['rare','Rare'],['common','Common']].map(([f, l]) => (
+                                <button key={f} onClick={() => setLimitedFilter(f)} className={`tab-button ${limitedFilter === f ? 'active' : ''}`}>{l}</button>
+                            ))}
+                        </div>
+                        <div className="card-grid">
+                            {getFilteredLimiteds().map(item => {
+                                const owned = limitedInventory[item.id]?.length || 0;
+                                const value = limitedValues[item.id] || (item.minValue + item.maxValue) / 2;
+                                return (
+                                    <div key={item.id} className={`card limited-card rarity-${item.rarity.toLowerCase()}`} onClick={() => setSelectedLimited(item)}>
+                                        <div className={`limited-badge rarity-${item.rarity.toLowerCase()}`}>{item.rarity}</div>
+                                        <div className="limited-emoji">{item.emoji}</div>
+                                        <h3 className="card-title">{item.name}</h3>
+                                        <div style={{textAlign:'center',marginBottom:'10px'}}>
+                                            <div style={{fontSize:'14px'}}>Cost: ${item.cost.toLocaleString()}</div>
+                                            <div style={{fontSize:'14px'}}>Value: ${value.toFixed(2)}</div>
+                                        </div>
+                                        {owned > 0 && <div style={{textAlign:'center',color:'white',fontSize:'14px',marginBottom:'8px'}}>Owned: {owned}</div>}
+                                        <button onClick={(e) => { e.stopPropagation(); buyLimited(item.id, item.cost); }} disabled={money < item.cost} className="card-button btn btn-success">
+                                            BUY ${item.cost.toLocaleString()}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* PORTFOLIO */}
                 {currentView === 'portfolio' && (
                     <div>
                         <h1 className="view-title">📊 My Portfolio</h1>
-                        <p className="view-subtitle">Your investments and collection</p>
-                        
                         <div className="stats-grid">
-                            <div className="stat-card">
-                                <div className="stat-label">Babies Owned</div>
-                                <div className="stat-value">{Object.values(portfolio).reduce((sum, qty) => sum + qty, 0)}</div>
-                            </div>
-                            <div className="stat-card">
-                                <div className="stat-label">Portfolio Value</div>
-                                <div className="stat-value">${getPortfolioValue().toLocaleString()}</div>
-                            </div>
-                            <div className="stat-card">
-                                <div className="stat-label">Limiteds Owned</div>
-                                <div className="stat-value">{Object.values(limitedInventory).reduce((sum, arr) => sum + arr.length, 0)}</div>
-                            </div>
-                            <div className="stat-card">
-                                <div className="stat-label">Limited Value</div>
-                                <div className="stat-value">${getLimitedValue().toLocaleString()}</div>
-                            </div>
+                            <div className="stat-card"><div className="stat-label">Babies Owned</div><div className="stat-value">{Object.values(portfolio).reduce((s,q)=>s+q,0)}</div></div>
+                            <div className="stat-card"><div className="stat-label">Portfolio Value</div><div className="stat-value">${getPortfolioValue().toLocaleString()}</div></div>
+                            <div className="stat-card"><div className="stat-label">Limiteds Owned</div><div className="stat-value">{Object.values(limitedInventory).reduce((s,a)=>s+a.length,0)}</div></div>
+                            <div className="stat-card"><div className="stat-label">Limited Value</div><div className="stat-value">${getLimitedValue().toLocaleString()}</div></div>
                         </div>
-
-                        <h2 style={{marginTop: '40px', marginBottom: '20px', fontSize: '28px', fontWeight: '800', color: '#2c3e50'}}>💼 Your Babies</h2>
+                        <h2 style={{marginTop:'40px',marginBottom:'20px',fontSize:'28px',fontWeight:'800',color:'#2c3e50'}}>💼 Your Babies</h2>
                         <div className="card-grid">
                             {Object.keys(portfolio).filter(id => portfolio[id] > 0).map(babyId => {
                                 const baby = babies.find(b => b.id === parseInt(babyId));
-                                const quantity = portfolio[babyId];
-                                const price = prices[babyId] || 150;
-                                const totalValue = quantity * price;
-                                
+                                const qty = portfolio[babyId]; const price = prices[babyId] || 150;
                                 return baby ? (
                                     <div key={babyId} className="card">
                                         <img src={baby.image} alt={baby.name} className="card-image" />
                                         <h3 className="card-title">{baby.name}</h3>
-                                        <div className="card-info">Quantity: {quantity}</div>
-                                        <div className="card-info">Current Price: ${price.toFixed(2)}</div>
-                                        <div className="card-price">${totalValue.toFixed(2)}</div>
-                                        <button onClick={() => { sellBaby(parseInt(babyId), price); }}
-                                            disabled={!marketOpen}
-                                            className="card-button btn btn-danger">
+                                        <div className="card-info">Quantity: {qty}</div>
+                                        <div className="card-info">Price: ${price.toFixed(2)}</div>
+                                        <div className="card-price">${(qty * price).toFixed(2)}</div>
+                                        <button onClick={() => sellBaby(parseInt(babyId), price)} disabled={!marketOpen} className="card-button btn btn-danger">
                                             {marketOpen ? `SELL $${price.toFixed(2)}` : 'MARKET CLOSED'}
                                         </button>
                                     </div>
                                 ) : null;
                             })}
                         </div>
-
-                        <h2 style={{marginTop: '40px', marginBottom: '20px', fontSize: '28px', fontWeight: '800', color: '#2c3e50'}}>💎 Your Limiteds</h2>
+                        <h2 style={{marginTop:'40px',marginBottom:'20px',fontSize:'28px',fontWeight:'800',color:'#2c3e50'}}>💎 Your Limiteds</h2>
                         <div className="card-grid">
                             {Object.keys(limitedInventory).filter(id => limitedInventory[id].length > 0).map(itemId => {
                                 const item = limitedItems.find(i => i.id === itemId);
-                                const quantity = limitedInventory[itemId].length;
-                                const value = limitedValues[itemId] || 0;
-                                const totalValue = quantity * value;
-                                
+                                const qty = limitedInventory[itemId].length; const value = limitedValues[itemId] || 0;
                                 return item ? (
                                     <div key={itemId} className={`card limited-card rarity-${item.rarity.toLowerCase()}`}>
                                         <div className={`limited-badge rarity-${item.rarity.toLowerCase()}`}>{item.rarity}</div>
                                         <div className="limited-emoji">{item.emoji}</div>
                                         <h3 className="card-title">{item.name}</h3>
-                                        <div style={{textAlign: 'center', color: 'white', marginBottom: '10px'}}>
-                                            <div style={{fontSize: '14px'}}>Owned: {quantity}</div>
-                                            <div style={{fontSize: '14px'}}>Value Each: ${value.toFixed(2)}</div>
+                                        <div style={{textAlign:'center',color:'white',marginBottom:'10px'}}>
+                                            <div>Owned: {qty}</div>
+                                            <div>Value Each: ${value.toFixed(2)}</div>
                                         </div>
-                                        <div className="card-price" style={{color: 'white'}}>${totalValue.toFixed(2)}</div>
-                                        <div style={{textAlign: 'center', fontSize: '12px', color: 'white', marginTop: '10px'}}>
-                                            Collection Item - Cannot be sold
-                                        </div>
+                                        <div className="card-price" style={{color:'white'}}>${(qty * value).toFixed(2)}</div>
+                                        <div style={{textAlign:'center',fontSize:'12px',color:'rgba(255,255,255,0.8)',marginTop:'8px'}}>Trade via the 🤝 Trade tab!</div>
                                     </div>
                                 ) : null;
                             })}
@@ -1189,57 +895,183 @@ const AurababyMarket = () => {
                     </div>
                 )}
 
+                {/* PROFILE */}
                 {currentView === 'profile' && (
                     <div>
                         <div className="profile-header">
                             <div className="profile-username">{username}</div>
                             <div className="profile-joined">Trader Since {window.gameState.createdAt ? new Date(window.gameState.createdAt).toLocaleDateString() : 'Today'}</div>
                         </div>
-
                         <div className="stats-grid">
-                            <div className="stat-card">
-                                <div className="stat-label">Net Worth</div>
-                                <div className="stat-value">${(money + getPortfolioValue() + getLimitedValue()).toLocaleString()}</div>
-                            </div>
-                            <div className="stat-card">
-                                <div className="stat-label">Cash Balance</div>
-                                <div className="stat-value">${money.toLocaleString()}</div>
-                            </div>
-                            <div className="stat-card">
-                                <div className="stat-label">Total Trades</div>
-                                <div className="stat-value">{tradeHistory.length}</div>
-                            </div>
-                            <div className="stat-card">
-                                <div className="stat-label">Name Tags</div>
-                                <div className="stat-value">🏷️ {nameTagsOwned}</div>
-                            </div>
+                            <div className="stat-card"><div className="stat-label">Net Worth</div><div className="stat-value">${(money + getPortfolioValue() + getLimitedValue()).toLocaleString()}</div></div>
+                            <div className="stat-card"><div className="stat-label">Cash</div><div className="stat-value">${money.toLocaleString()}</div></div>
+                            <div className="stat-card"><div className="stat-label">Total Trades</div><div className="stat-value">{tradeHistory.length}</div></div>
+                            <div className="stat-card"><div className="stat-label">Name Tags</div><div className="stat-value">🏷️ {nameTagsOwned}</div></div>
                         </div>
                     </div>
                 )}
 
+                {/* HISTORY */}
                 {currentView === 'trades' && (
                     <div>
                         <h1 className="view-title">📜 Trade History</h1>
-                        <p className="view-subtitle">All your transactions</p>
-                        
                         {tradeHistory.length === 0 ? (
-                            <div style={{textAlign: 'center', padding: '60px', background: 'white', borderRadius: '20px'}}>
-                                <h3 style={{fontSize: '24px', color: '#7f8c8d'}}>No trades yet!</h3>
-                                <p style={{marginTop: '10px', color: '#95a5a6'}}>Start trading to see your history here</p>
+                            <div style={{textAlign:'center',padding:'60px',background:'white',borderRadius:'20px'}}><h3 style={{color:'#7f8c8d'}}>No trades yet!</h3></div>
+                        ) : tradeHistory.map(trade => (
+                            <div key={trade.id} className={`trade-item ${trade.type.startsWith('BUY') ? 'trade-buy' : 'trade-sell'}`}>
+                                <div className="trade-info">
+                                    <strong>{trade.type}</strong> - {trade.babyName}
+                                    <div style={{fontSize:'14px',color:'#7f8c8d',marginTop:'5px'}}>{trade.timestamp}</div>
+                                </div>
+                                <div className="trade-price">{trade.type.startsWith('BUY') ? '-' : '+'}${trade.price.toFixed(2)}</div>
                             </div>
-                        ) : (
+                        ))}
+                    </div>
+                )}
+
+                {/* ===== TRADE HUB ===== */}
+                {currentView === 'trade' && (
+                    <div>
+                        <h1 className="view-title">🤝 Player Trading</h1>
+
+                        {/* Sub-tabs */}
+                        <div className="tabs" style={{marginBottom:'25px'}}>
+                            <button onClick={() => setTradeTab('players')} className={`tab-button ${tradeTab === 'players' ? 'active' : ''}`}>👥 Players</button>
+                            <button onClick={() => setTradeTab('incoming')} className={`tab-button ${tradeTab === 'incoming' ? 'active' : ''}`}>
+                                📥 Incoming
+                                {incomingTrades.length > 0 && <span style={{background:'#e74c3c',color:'white',borderRadius:'50%',padding:'2px 8px',marginLeft:'6px',fontSize:'12px'}}>{incomingTrades.length}</span>}
+                            </button>
+                            <button onClick={() => { setTradeTab('sent'); window.multiplayer.loadMyTrades().then(({sent}) => setSentTrades(sent)); }} className={`tab-button ${tradeTab === 'sent' ? 'active' : ''}`}>
+                                📤 Sent{sentTrades.length > 0 ? ` (${sentTrades.length})` : ''}
+                            </button>
+                        </div>
+
+                        {/* PLAYERS */}
+                        {tradeTab === 'players' && (
+                            <>
+                                <div style={{background:'#e8f4fd',padding:'14px 18px',borderRadius:'12px',marginBottom:'25px',fontSize:'14px',fontWeight:'600',color:'#2980b9'}}>
+                                    💡 Click <strong>🤝 Trade</strong> on any player to build and send a trade offer. Up to <strong>6 items per side</strong> — mix babies (with quantity) and limiteds freely!
+                                </div>
+                                <h3 style={{fontSize:'20px',fontWeight:'800',color:'#27ae60',marginBottom:'15px'}}>🟢 Online Players</h3>
+                                <div className="player-list">
+                                    {allPlayers.filter(p => p.isOnline && !p.isCurrentUser).map(player => (
+                                        <div key={player.id} className="player-card player-online">
+                                            <div className="player-status status-online"></div>
+                                            <div className="player-name">{player.username}</div>
+                                            <div className="player-info">Net Worth: ${player.netWorth?.toLocaleString() || 0}</div>
+                                            <div className="player-info">Babies: {player.babiesOwned || 0} | Limiteds: {player.limitedsOwned || 0}</div>
+                                            <button className="btn btn-primary" style={{width:'100%',marginTop:'10px'}} onClick={() => openTradeWith(player)}>🤝 Trade</button>
+                                        </div>
+                                    ))}
+                                    {allPlayers.filter(p => p.isOnline && !p.isCurrentUser).length === 0 && (
+                                        <div style={{gridColumn:'1/-1',textAlign:'center',padding:'40px',background:'white',borderRadius:'15px'}}>
+                                            <h3 style={{color:'#7f8c8d'}}>No players online right now</h3>
+                                            <p style={{color:'#95a5a6',marginTop:'8px'}}>You can still send trade offers to offline players below</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <h3 style={{fontSize:'20px',fontWeight:'800',color:'#95a5a6',margin:'30px 0 15px'}}>⚫ Offline Players</h3>
+                                <div className="player-list">
+                                    {allPlayers.filter(p => !p.isOnline && !p.isCurrentUser).slice(0, 20).map(player => (
+                                        <div key={player.id} className="player-card player-offline">
+                                            <div className="player-status status-offline"></div>
+                                            <div className="player-name">{player.username}</div>
+                                            <div className="player-info">Net Worth: ${player.netWorth?.toLocaleString() || 0}</div>
+                                            <div className="player-info">Babies: {player.babiesOwned || 0} | Limiteds: {player.limitedsOwned || 0}</div>
+                                            <button className="btn btn-primary" style={{width:'100%',marginTop:'10px'}} onClick={() => openTradeWith(player)}>🤝 Send Trade Offer</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        {/* INCOMING */}
+                        {tradeTab === 'incoming' && (
                             <div>
-                                {tradeHistory.map(trade => (
-                                    <div key={trade.id} className={`trade-item ${trade.type.startsWith('BUY') ? 'trade-buy' : 'trade-sell'}`}>
-                                        <div className="trade-info">
-                                            <strong>{trade.type}</strong> - {trade.babyName}
-                                            <div style={{fontSize: '14px', color: '#7f8c8d', marginTop: '5px'}}>
-                                                {trade.timestamp}
+                                <h3 style={{fontSize:'22px',fontWeight:'800',marginBottom:'20px'}}>📥 Incoming Trade Offers</h3>
+                                {incomingTrades.length === 0 ? (
+                                    <div style={{textAlign:'center',padding:'60px',background:'white',borderRadius:'20px'}}>
+                                        <h3 style={{color:'#7f8c8d'}}>No pending offers</h3>
+                                        <p style={{color:'#95a5a6',marginTop:'10px'}}>Trade offers from other players will appear here</p>
+                                    </div>
+                                ) : incomingTrades.map(trade => (
+                                    <div key={trade.id} style={{background:'white',borderRadius:'20px',padding:'25px',marginBottom:'20px',boxShadow:'0 4px 15px rgba(0,0,0,0.08)',borderLeft:'5px solid #667eea'}}>
+                                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
+                                            <strong style={{fontSize:'20px',color:'#2c3e50'}}>From: {trade.fromUsername}</strong>
+                                            <small style={{color:'#999'}}>{trade.createdAt?.toDate ? trade.createdAt.toDate().toLocaleString() : 'Just now'}</small>
+                                        </div>
+                                        <div style={{display:'grid',gridTemplateColumns:'1fr 40px 1fr',gap:'15px',alignItems:'start',marginBottom:'20px'}}>
+                                            <div>
+                                                <div style={{fontWeight:'800',marginBottom:'10px',color:'#27ae60',fontSize:'15px'}}>They're offering:</div>
+                                                {trade.myOffer.length === 0
+                                                    ? <div style={{color:'#aaa',fontStyle:'italic',padding:'10px',background:'#f9f9f9',borderRadius:'8px'}}>Nothing</div>
+                                                    : trade.myOffer.map((slot, i) => (
+                                                        <div key={i} style={tradeSlotStyle('green')}>
+                                                            <span style={{fontSize:'20px'}}>{slot.emoji}</span>
+                                                            <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}</span>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                            <div style={{textAlign:'center',paddingTop:'35px',fontSize:'24px'}}>⇄</div>
+                                            <div>
+                                                <div style={{fontWeight:'800',marginBottom:'10px',color:'#e74c3c',fontSize:'15px'}}>They want from you:</div>
+                                                {trade.theirRequest.length === 0
+                                                    ? <div style={{color:'#aaa',fontStyle:'italic',padding:'10px',background:'#f9f9f9',borderRadius:'8px'}}>Nothing</div>
+                                                    : trade.theirRequest.map((slot, i) => (
+                                                        <div key={i} style={tradeSlotStyle('red')}>
+                                                            <span style={{fontSize:'20px'}}>{slot.emoji}</span>
+                                                            <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}</span>
+                                                        </div>
+                                                    ))}
                                             </div>
                                         </div>
-                                        <div className="trade-price">
-                                            {trade.type.startsWith('BUY') ? '-' : '+'}${trade.price.toFixed(2)}
+                                        <div style={{display:'flex',gap:'12px'}}>
+                                            <button onClick={() => handleAcceptTrade(trade)} className="btn btn-success" style={{flex:1,padding:'14px',fontSize:'16px'}}>✅ Accept</button>
+                                            <button onClick={() => handleDeclineTrade(trade.id)} className="btn btn-danger" style={{flex:1,padding:'14px',fontSize:'16px'}}>❌ Decline</button>
                                         </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* SENT */}
+                        {tradeTab === 'sent' && (
+                            <div>
+                                <h3 style={{fontSize:'22px',fontWeight:'800',marginBottom:'20px'}}>📤 Sent Trade Offers</h3>
+                                {sentTrades.length === 0 ? (
+                                    <div style={{textAlign:'center',padding:'60px',background:'white',borderRadius:'20px'}}>
+                                        <h3 style={{color:'#7f8c8d'}}>No pending sent offers</h3>
+                                    </div>
+                                ) : sentTrades.map(trade => (
+                                    <div key={trade.id} style={{background:'white',borderRadius:'20px',padding:'25px',marginBottom:'20px',boxShadow:'0 4px 15px rgba(0,0,0,0.08)',borderLeft:'5px solid #f39c12'}}>
+                                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
+                                            <strong style={{fontSize:'20px',color:'#2c3e50'}}>To: {trade.toUsername}</strong>
+                                            <span style={{background:'#fff3cd',color:'#856404',padding:'5px 12px',borderRadius:'20px',fontWeight:'700',fontSize:'13px'}}>⏳ Pending</span>
+                                        </div>
+                                        <div style={{display:'grid',gridTemplateColumns:'1fr 40px 1fr',gap:'15px',alignItems:'start',marginBottom:'20px'}}>
+                                            <div>
+                                                <div style={{fontWeight:'800',marginBottom:'10px',color:'#e74c3c',fontSize:'15px'}}>You're giving:</div>
+                                                {trade.myOffer.map((slot, i) => (
+                                                    <div key={i} style={tradeSlotStyle('red')}>
+                                                        <span style={{fontSize:'20px'}}>{slot.emoji}</span>
+                                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}</span>
+                                                    </div>
+                                                ))}
+                                                {trade.myOffer.length === 0 && <div style={{color:'#aaa',fontStyle:'italic'}}>Nothing</div>}
+                                            </div>
+                                            <div style={{textAlign:'center',paddingTop:'35px',fontSize:'24px'}}>⇄</div>
+                                            <div>
+                                                <div style={{fontWeight:'800',marginBottom:'10px',color:'#27ae60',fontSize:'15px'}}>You want:</div>
+                                                {trade.theirRequest.map((slot, i) => (
+                                                    <div key={i} style={tradeSlotStyle('green')}>
+                                                        <span style={{fontSize:'20px'}}>{slot.emoji}</span>
+                                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}</span>
+                                                    </div>
+                                                ))}
+                                                {trade.theirRequest.length === 0 && <div style={{color:'#aaa',fontStyle:'italic'}}>Nothing</div>}
+                                            </div>
+                                        </div>
+                                        <button onClick={() => handleDeclineTrade(trade.id)} className="btn btn-danger" style={{width:'100%'}}>🗑️ Cancel Offer</button>
                                     </div>
                                 ))}
                             </div>
@@ -1247,73 +1079,19 @@ const AurababyMarket = () => {
                     </div>
                 )}
 
-                {currentView === 'trade' && (
-                    <div>
-                        <h1 className="view-title">🤝 Player Trading</h1>
-                        <p className="view-subtitle">Trade with other players (Coming Soon)</p>
-                        
-                        <h2 style={{marginTop: '30px', marginBottom: '20px', fontSize: '24px', fontWeight: '800', color: '#27ae60'}}>
-                            🟢 Online Players
-                        </h2>
-                        <div className="player-list">
-                            {allPlayers.filter(p => p.isOnline && !p.isCurrentUser).map(player => (
-                                <div key={player.id} className="player-card player-online">
-                                    <div className="player-status status-online"></div>
-                                    <div className="player-name">{player.username}</div>
-                                    <div className="player-info">Net Worth: ${player.netWorth?.toLocaleString() || 0}</div>
-                                    <div className="player-info">Babies: {player.babiesOwned || 0} | Limiteds: {player.limitedsOwned || 0}</div>
-                                    <button className="btn btn-primary" style={{width: '100%', marginTop: '10px'}} disabled>
-                                        Trade (Coming Soon)
-                                    </button>
-                                </div>
-                            ))}
-                            {allPlayers.filter(p => p.isOnline && !p.isCurrentUser).length === 0 && (
-                                <div style={{gridColumn: '1 / -1', textAlign: 'center', padding: '40px', background: 'white', borderRadius: '15px'}}>
-                                    <h3 style={{color: '#7f8c8d'}}>No players online right now</h3>
-                                </div>
-                            )}
-                        </div>
-
-                        <h2 style={{marginTop: '40px', marginBottom: '20px', fontSize: '24px', fontWeight: '800', color: '#95a5a6'}}>
-                            ⚫ Offline Players
-                        </h2>
-                        <div className="player-list">
-                            {allPlayers.filter(p => !p.isOnline && !p.isCurrentUser).slice(0, 20).map(player => (
-                                <div key={player.id} className="player-card player-offline">
-                                    <div className="player-status status-offline"></div>
-                                    <div className="player-name">{player.username}</div>
-                                    <div className="player-info">Net Worth: ${player.netWorth?.toLocaleString() || 0}</div>
-                                    <div className="player-info">Babies: {player.babiesOwned || 0} | Limiteds: {player.limitedsOwned || 0}</div>
-                                    <button className="btn btn-primary" style={{width: '100%', marginTop: '10px'}} disabled>
-                                        Trade (Coming Soon)
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
+                {/* LEADERBOARD */}
                 {currentView === 'leaderboard' && (
                     <div>
                         <h1 className="view-title">🏆 Leaderboard</h1>
-                        
                         {leaderboard.length > 0 ? (
                             <div className="leaderboard-table">
                                 <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Rank</th>
-                                            <th>Username</th>
-                                            <th>Net Worth</th>
-                                            <th>Babies</th>
-                                            <th>Limiteds</th>
-                                        </tr>
-                                    </thead>
+                                    <thead><tr><th>Rank</th><th>Username</th><th>Net Worth</th><th>Babies</th><th>Limiteds</th></tr></thead>
                                     <tbody>
                                         {leaderboard.map((player, idx) => (
                                             <tr key={player.id} className={player.isCurrentUser ? 'leaderboard-highlight' : ''}>
                                                 <td className="leaderboard-rank">#{idx + 1}</td>
-                                                <td><strong>{player.username}</strong> {player.isCurrentUser && '(You)'}</td>
+                                                <td><strong>{player.username}</strong>{player.isCurrentUser && ' (You)'}</td>
                                                 <td>${player.netWorth?.toLocaleString() || 0}</td>
                                                 <td>{player.babiesOwned || 0}</td>
                                                 <td>{player.limitedsOwned || 0}</td>
@@ -1322,120 +1100,256 @@ const AurababyMarket = () => {
                                     </tbody>
                                 </table>
                             </div>
-                        ) : (
-                            <p>Loading...</p>
-                        )}
+                        ) : <p>Loading...</p>}
                     </div>
                 )}
             </div>
 
-            {showNameChange && (
-                <div className="modal-overlay" onClick={() => setShowNameChange(false)}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
-                        <h2 className="modal-title">Change Username</h2>
-                        
-                        <div className="name-change-section">
-                            <div className="name-change-title">Current: {username}</div>
-                            <div className="name-change-cost">
-                                {hasChangedName ? '💰 Cost: $10,000 (gives Name Tag item 🏷️)' : '✨ First change is FREE!'}
+            {/* ===== TRADE COMPOSE MODAL ===== */}
+            {showTradeModal && tradeTarget && (
+                <div className="modal-overlay" onClick={() => { if (!addingSlot) setShowTradeModal(false); }}>
+                    <div className="modal" style={{maxWidth:'800px'}} onClick={e => e.stopPropagation()}>
+                        <h2 className="modal-title">🤝 Trade with {tradeTarget.username}</h2>
+                        <p style={{color:'#7f8c8d',marginBottom:'20px',fontWeight:'600'}}>
+                            Up to 6 items per side. Mix babies (any quantity you own) and limiteds.
+                        </p>
+
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 50px 1fr',gap:'20px',alignItems:'start'}}>
+                            {/* MY OFFER */}
+                            <div>
+                                <div style={{fontWeight:'800',fontSize:'17px',color:'#e74c3c',marginBottom:'12px'}}>
+                                    🎁 You Give ({myOffer.length}/6)
+                                </div>
+                                {myOffer.map((slot, i) => (
+                                    <div key={i} style={tradeSlotStyle('red')}>
+                                        <span style={{fontSize:'20px'}}>{slot.emoji}</span>
+                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}</span>
+                                        <button onClick={() => removeTradeSlot('offer', i)} style={{background:'none',border:'none',cursor:'pointer',color:'#e74c3c',fontSize:'18px',padding:'0 4px'}}>✕</button>
+                                    </div>
+                                ))}
+                                {myOffer.length < 6 && addingSlot !== 'offer' && (
+                                    <button onClick={() => setAddingSlot('offer')} className="btn btn-danger" style={{width:'100%',padding:'11px',marginTop:'5px'}}>+ Add Item</button>
+                                )}
                             </div>
-                            
-                            <input 
-                                type="text"
-                                value={newName}
-                                onChange={(e) => setNewName(e.target.value.toLowerCase())}
-                                className="name-input"
-                                placeholder="Enter new username"
-                            />
-                            
-                            <div className="modal-buttons">
-                                <button onClick={handleNameChange} className="modal-button btn btn-success">
-                                    Confirm Change
-                                </button>
-                                <button onClick={() => setShowNameChange(false)} className="modal-button btn btn-danger">
-                                    Cancel
-                                </button>
+
+                            <div style={{textAlign:'center',paddingTop:'45px',fontSize:'28px'}}>⇄</div>
+
+                            {/* THEIR REQUEST */}
+                            <div>
+                                <div style={{fontWeight:'800',fontSize:'17px',color:'#27ae60',marginBottom:'12px'}}>
+                                    📥 You Get ({theirRequest.length}/6)
+                                </div>
+                                {theirRequest.map((slot, i) => (
+                                    <div key={i} style={tradeSlotStyle('green')}>
+                                        <span style={{fontSize:'20px'}}>{slot.emoji}</span>
+                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}</span>
+                                        <button onClick={() => removeTradeSlot('request', i)} style={{background:'none',border:'none',cursor:'pointer',color:'#27ae60',fontSize:'18px',padding:'0 4px'}}>✕</button>
+                                    </div>
+                                ))}
+                                {theirRequest.length < 6 && addingSlot !== 'request' && (
+                                    <button onClick={() => setAddingSlot('request')} className="btn btn-success" style={{width:'100%',padding:'11px',marginTop:'5px'}}>+ Add Item</button>
+                                )}
                             </div>
                         </div>
-                        
-                        {nameTagsOwned > 0 && (
-                            <div style={{marginTop: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '10px', textAlign: 'center'}}>
-                                <strong>Name Tags Owned: 🏷️ {nameTagsOwned}</strong>
-                                <div style={{fontSize: '14px', marginTop: '8px', color: '#666'}}>
-                                    These can be traded with other players!
+
+                        {/* ---- ITEM PICKER ---- */}
+                        {addingSlot && (
+                            <div style={{marginTop:'22px',background:'#f8f9fa',borderRadius:'15px',padding:'20px',maxHeight:'380px',overflowY:'auto'}}>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'15px'}}>
+                                    <strong style={{fontSize:'16px',color:'#2c3e50'}}>
+                                        {addingSlot === 'offer' ? '📤 Pick item to give:' : '📥 Pick item to request:'}
+                                    </strong>
+                                    <button onClick={() => setAddingSlot(null)} style={{background:'#e74c3c',color:'white',border:'none',borderRadius:'8px',padding:'6px 14px',cursor:'pointer',fontWeight:'700'}}>Close</button>
                                 </div>
+
+                                {/* MY BABIES (when offering) */}
+                                {addingSlot === 'offer' && (() => {
+                                    const owned = babies.filter(b => (portfolio[b.id] || 0) > 0);
+                                    return owned.length > 0 ? (
+                                        <>
+                                            <div style={{fontWeight:'800',color:'#2c3e50',marginBottom:'10px'}}>👶 Your Babies:</div>
+                                            <div style={{display:'flex',flexWrap:'wrap',gap:'8px',marginBottom:'16px'}}>
+                                                {owned.map(baby => {
+                                                    const alreadyOffering = myOffer.find(s => s.type === 'baby' && s.id === baby.id)?.quantity || 0;
+                                                    const available = (portfolio[baby.id] || 0) - alreadyOffering;
+                                                    if (available <= 0) return null;
+                                                    return (
+                                                        <div key={baby.id} style={pickerItemStyle} onClick={() => {
+                                                            const qty = available > 1 ? (parseInt(prompt(`How many ${baby.name}? (max ${available})`, '1')) || 1) : 1;
+                                                            if (qty > 0 && qty <= available) addTradeSlot('offer', 'baby', baby, qty);
+                                                        }}>
+                                                            <div style={{fontSize:'11px',fontWeight:'700',marginBottom:'4px'}}>{baby.name}</div>
+                                                            <div style={{fontSize:'12px',color:'#667eea'}}>Have: {available}</div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </>
+                                    ) : null;
+                                })()}
+
+                                {/* ANY BABIES (when requesting) */}
+                                {addingSlot === 'request' && (
+                                    <>
+                                        <div style={{fontWeight:'800',color:'#2c3e50',marginBottom:'10px'}}>👶 Request Baby:</div>
+                                        <div style={{display:'flex',flexWrap:'wrap',gap:'8px',marginBottom:'16px'}}>
+                                            {babies.map(baby => (
+                                                <div key={baby.id} style={pickerItemStyle} onClick={() => {
+                                                    const qty = parseInt(prompt(`How many ${baby.name}?`, '1')) || 1;
+                                                    if (qty > 0) addTradeSlot('request', 'baby', baby, qty);
+                                                }}>
+                                                    <div style={{fontSize:'11px',fontWeight:'700'}}>{baby.name}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* MY LIMITEDS (when offering) */}
+                                {addingSlot === 'offer' && (() => {
+                                    const owned = limitedItems.filter(item => (limitedInventory[item.id]?.length || 0) > 0);
+                                    return owned.length > 0 ? (
+                                        <>
+                                            <div style={{fontWeight:'800',color:'#2c3e50',marginBottom:'10px'}}>💎 Your Limiteds:</div>
+                                            <div style={{display:'flex',flexWrap:'wrap',gap:'8px'}}>
+                                                {owned.map(item => {
+                                                    const alreadyOffering = myOffer.find(s => s.type === 'limited' && s.id === item.id)?.quantity || 0;
+                                                    const available = (limitedInventory[item.id]?.length || 0) - alreadyOffering;
+                                                    if (available <= 0) return null;
+                                                    return (
+                                                        <div key={item.id} style={pickerItemStyle} onClick={() => {
+                                                            const qty = available > 1 ? (parseInt(prompt(`How many ${item.name}? (max ${available})`, '1')) || 1) : 1;
+                                                            if (qty > 0 && qty <= available) addTradeSlot('offer', 'limited', item, qty);
+                                                        }}>
+                                                            <div style={{fontSize:'22px'}}>{item.emoji}</div>
+                                                            <div style={{fontSize:'11px',fontWeight:'700',marginTop:'4px'}}>{item.name}</div>
+                                                            <div style={{fontSize:'11px',color:'#667eea'}}>Have: {available}</div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </>
+                                    ) : <div style={{color:'#999',fontStyle:'italic'}}>You don't own any limiteds to offer</div>;
+                                })()}
+
+                                {/* ANY LIMITEDS (when requesting) */}
+                                {addingSlot === 'request' && limitedItems.length > 0 && (
+                                    <>
+                                        <div style={{fontWeight:'800',color:'#2c3e50',marginBottom:'10px'}}>💎 Request Limited:</div>
+                                        <div style={{display:'flex',flexWrap:'wrap',gap:'8px'}}>
+                                            {limitedItems.map(item => (
+                                                <div key={item.id} style={pickerItemStyle} onClick={() => {
+                                                    const qty = parseInt(prompt(`How many ${item.name}?`, '1')) || 1;
+                                                    if (qty > 0) addTradeSlot('request', 'limited', item, qty);
+                                                }}>
+                                                    <div style={{fontSize:'22px'}}>{item.emoji}</div>
+                                                    <div style={{fontSize:'11px',fontWeight:'700',marginTop:'4px'}}>{item.name}</div>
+                                                    <div style={{fontSize:'11px',color:'#95a5a6'}}>{item.rarity}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="modal-buttons" style={{marginTop:'25px'}}>
+                            <button onClick={submitTradeOffer} className="modal-button btn btn-success" style={{flex:2,fontSize:'17px'}}>
+                                📤 Send Trade Offer to {tradeTarget.username}
+                            </button>
+                            <button onClick={() => setShowTradeModal(false)} className="modal-button btn btn-danger" style={{flex:1}}>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* APPLY ENHANCER MODAL */}
+            {applyModal && (
+                <div className="modal-overlay" onClick={() => setApplyModal(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth:'700px' }}>
+                        <h2 className="modal-title">🧪 Apply Enhancer</h2>
+                        <p style={{ color:'#666', marginBottom:'20px' }}>Choose an enhancer from your inventory. This permanently boosts your limited item's value!</p>
+                        {Object.values(enhancerInventory).reduce((s,n) => s+n, 0) === 0 ? (
+                            <div style={{ textAlign:'center', padding:'40px', background:'#f8f9fa', borderRadius:'15px' }}>
+                                <div style={{ fontSize:'48px', marginBottom:'15px' }}>🧪</div>
+                                <h3 style={{ color:'#7f8c8d' }}>No enhancers owned!</h3>
+                                <p style={{ color:'#bdc3c7', marginTop:'8px' }}>Visit the Enhancers tab to buy some first.</p>
+                                <button onClick={() => { setApplyModal(null); setCurrentView('enhancers'); }} className="btn btn-primary" style={{ marginTop:'15px' }}>Go to Enhancer Shop</button>
+                            </div>
+                        ) : (
+                            <div>
+                                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(155px,1fr))', gap:'12px', maxHeight:'450px', overflowY:'auto', paddingRight:'4px' }}>
+                                    {allEnhancers.filter(e => (enhancerInventory[e.id] || 0) > 0).map(enh => (
+                                        <div key={enh.id} onClick={() => applyEnhancer(applyModal.itemId, applyModal.serial, enh.id)}
+                                            style={{ background: getEnhancerRarityBg(enh.rarity), borderRadius:'14px', padding:'14px', color:'white', cursor:'pointer', textAlign:'center', transition:'transform 0.2s', boxShadow: enh.rarity==='Divine' ? '0 0 20px rgba(255,0,255,0.5)' : '0 3px 10px rgba(0,0,0,0.2)' }}
+                                            onMouseOver={e => e.currentTarget.style.transform='scale(1.05)'}
+                                            onMouseOut={e => e.currentTarget.style.transform='scale(1)'}>
+                                            <div style={{ fontSize:'36px', marginBottom:'6px' }}>{enh.emoji}</div>
+                                            <div style={{ fontWeight:'800', fontSize:'13px', marginBottom:'4px' }}>{enh.name}</div>
+                                            <div style={{ background:'rgba(0,0,0,0.25)', borderRadius:'12px', padding:'4px 8px', fontSize:'16px', fontWeight:'800', marginBottom:'6px' }}>+{enh.boost}%</div>
+                                            <div style={{ fontSize:'12px', opacity:0.9, marginBottom:'8px' }}>Owned: {enhancerInventory[enh.id]}</div>
+                                            <div style={{ background:'rgba(255,255,255,0.9)', color:'#2c3e50', borderRadius:'8px', padding:'6px', fontSize:'13px', fontWeight:'800' }}>TAP TO APPLY</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button onClick={() => setApplyModal(null)} className="btn btn-danger" style={{ width:'100%', marginTop:'20px' }}>Cancel</button>
                             </div>
                         )}
                     </div>
                 </div>
             )}
 
+            {/* NAME CHANGE */}
+            {showNameChange && (
+                <div className="modal-overlay" onClick={() => setShowNameChange(false)}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <h2 className="modal-title">Change Username</h2>
+                        <div className="name-change-section">
+                            <div className="name-change-title">Current: {username}</div>
+                            <div className="name-change-cost">{hasChangedName ? '💰 Cost: $10,000 (gives Name Tag 🏷️)' : '✨ First change is FREE!'}</div>
+                            <input type="text" value={newName} onChange={e => setNewName(e.target.value.toLowerCase())} className="name-input" placeholder="Enter new username" />
+                            <div className="modal-buttons">
+                                <button onClick={handleNameChange} className="modal-button btn btn-success">Confirm</button>
+                                <button onClick={() => setShowNameChange(false)} className="modal-button btn btn-danger">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ITEM DETAIL */}
             {(selectedBaby || selectedLimited) && (
                 <div className="modal-overlay" onClick={() => { setSelectedBaby(null); setSelectedLimited(null); }}>
                     <div className="modal" onClick={e => e.stopPropagation()}>
                         {selectedBaby && (
                             <>
-                                <img src={selectedBaby.image} alt={selectedBaby.name} style={{width: '100%', maxHeight: '300px', objectFit: 'cover', borderRadius: '15px', marginBottom: '20px'}} />
+                                <img src={selectedBaby.image} alt={selectedBaby.name} style={{width:'100%',maxHeight:'300px',objectFit:'cover',borderRadius:'15px',marginBottom:'20px'}} />
                                 <h2 className="modal-title">{selectedBaby.name}</h2>
                                 <div className="card-price">${(prices[selectedBaby.id] || 150).toFixed(2)}</div>
                                 <div className="card-info">You own: {portfolio[selectedBaby.id] || 0}</div>
-                                
-                                {priceHistory.length > 1 && (
-                                    <div className="modal-chart">
-                                        <canvas ref={chartRef} height="120"></canvas>
-                                    </div>
-                                )}
-                                
+                                {priceHistory.length > 1 && <div className="modal-chart"><canvas ref={chartRef} height="120"></canvas></div>}
                                 <div className="modal-buttons">
-                                    <button onClick={() => { buyBaby(selectedBaby.id, prices[selectedBaby.id]); setSelectedBaby(null); }}
-                                        disabled={money < prices[selectedBaby.id] || !marketOpen} 
-                                        className="modal-button btn btn-success">
-                                        BUY ${(prices[selectedBaby.id] || 150).toFixed(2)}
-                                    </button>
-                                    {portfolio[selectedBaby.id] > 0 && (
-                                        <button onClick={() => { sellBaby(selectedBaby.id, prices[selectedBaby.id]); setSelectedBaby(null); }} 
-                                            disabled={!marketOpen}
-                                            className="modal-button btn btn-danger">
-                                            SELL ${(prices[selectedBaby.id] || 150).toFixed(2)}
-                                        </button>
-                                    )}
+                                    <button onClick={() => { buyBaby(selectedBaby.id, prices[selectedBaby.id]); setSelectedBaby(null); }} disabled={money < prices[selectedBaby.id] || !marketOpen} className="modal-button btn btn-success">BUY ${(prices[selectedBaby.id]||150).toFixed(2)}</button>
+                                    {portfolio[selectedBaby.id] > 0 && <button onClick={() => { sellBaby(selectedBaby.id, prices[selectedBaby.id]); setSelectedBaby(null); }} disabled={!marketOpen} className="modal-button btn btn-danger">SELL ${(prices[selectedBaby.id]||150).toFixed(2)}</button>}
                                 </div>
                             </>
                         )}
-                        
                         {selectedLimited && (
                             <>
                                 <div className="limited-emoji">{selectedLimited.emoji}</div>
                                 <h2 className="modal-title">{selectedLimited.name}</h2>
-                                <div className={`limited-badge rarity-${selectedLimited.rarity.toLowerCase()}`} style={{position: 'relative', display: 'inline-block', marginBottom: '15px'}}>
-                                    {selectedLimited.rarity}
+                                <div className={`limited-badge rarity-${selectedLimited.rarity.toLowerCase()}`} style={{position:'relative',display:'inline-block',marginBottom:'15px'}}>{selectedLimited.rarity}</div>
+                                <div style={{textAlign:'center',marginBottom:'20px'}}>
+                                    <div>Cost: ${selectedLimited.cost.toLocaleString()}</div>
+                                    <div>Current Value: ${(limitedValues[selectedLimited.id]||0).toFixed(2)}</div>
                                 </div>
-                                <div style={{textAlign: 'center', marginBottom: '20px'}}>
-                                    <div>Cost: ${selectedLimited.cost}</div>
-                                    <div>Current Value: ${(limitedValues[selectedLimited.id] || 0).toFixed(2)}</div>
-                                    <div style={{fontSize: '14px', color: '#e74c3c', marginTop: '8px', fontWeight: '800'}}>
-                                        Collection item - Cannot be sold!
-                                    </div>
-                                </div>
-                                
-                                {priceHistory.length > 1 && (
-                                    <div className="modal-chart">
-                                        <canvas ref={chartRef} height="120"></canvas>
-                                    </div>
-                                )}
-                                
-                                <button onClick={() => { buyLimited(selectedLimited.id, selectedLimited.cost); setSelectedLimited(null); }}
-                                    disabled={money < selectedLimited.cost} 
-                                    className="modal-button btn btn-success" style={{width: '100%', marginTop: '20px'}}>
-                                    BUY ${selectedLimited.cost}
-                                </button>
+                                {priceHistory.length > 1 && <div className="modal-chart"><canvas ref={chartRef} height="120"></canvas></div>}
+                                <button onClick={() => { buyLimited(selectedLimited.id, selectedLimited.cost); setSelectedLimited(null); }} disabled={money < selectedLimited.cost} className="modal-button btn btn-success" style={{width:'100%',marginTop:'20px'}}>BUY ${selectedLimited.cost.toLocaleString()}</button>
                             </>
                         )}
-                        
-                        <button onClick={() => { setSelectedBaby(null); setSelectedLimited(null); }} 
-                            className="modal-button btn btn-danger" style={{width: '100%', marginTop: '15px'}}>
-                            Close
-                        </button>
+                        <button onClick={() => { setSelectedBaby(null); setSelectedLimited(null); }} className="modal-button btn btn-danger" style={{width:'100%',marginTop:'15px'}}>Close</button>
                     </div>
                 </div>
             )}
