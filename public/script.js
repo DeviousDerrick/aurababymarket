@@ -132,9 +132,9 @@ async function loadGameData() {
         let username = currentUserAuth.isAnonymous ? 'Guest_' + Date.now() : (currentUserAuth.email || '').split('@')[0] || 'Trader';
         if (doc.exists) {
             const data = doc.data();
-            window.gameState = { username: data.username || username, money: data.money !== undefined ? data.money : 1000, portfolio: data.portfolio || {}, limitedInventory: data.limitedInventory || {}, nameTagsOwned: data.nameTagsOwned || 0, hasChangedName: data.hasChangedName || false, tradeHistory: data.tradeHistory || [], highestMoney: data.highestMoney || 1000, highestNetWorth: data.highestNetWorth || 1000, priceHistory: data.priceHistory || [], createdAt: data.createdAt || null };
+            window.gameState = { username: data.username || username, money: data.money !== undefined ? data.money : 1000, portfolio: data.portfolio || {}, limitedInventory: data.limitedInventory || {}, enhancerInventory: data.enhancerInventory || {}, medals: data.medals || [], nameTagsOwned: data.nameTagsOwned || 0, hasChangedName: data.hasChangedName || false, tradeHistory: data.tradeHistory || [], highestMoney: data.highestMoney || 1000, highestNetWorth: data.highestNetWorth || 1000, priceHistory: data.priceHistory || [], createdAt: data.createdAt || null };
         } else {
-            window.gameState = { username, money: 1000, portfolio: {}, limitedInventory: {}, nameTagsOwned: 0, hasChangedName: false, tradeHistory: [], highestMoney: 1000, highestNetWorth: 1000, priceHistory: [], createdAt: new Date() };
+            window.gameState = { username, money: 1000, portfolio: {}, limitedInventory: {}, enhancerInventory: {}, medals: [], nameTagsOwned: 0, hasChangedName: false, tradeHistory: [], highestMoney: 1000, highestNetWorth: 1000, priceHistory: [], createdAt: new Date() };
             await saveGameData();
         }
     } catch (error) { console.error('Load failed:', error); }
@@ -210,7 +210,7 @@ async function updateLeaderboard(playerData) {
     if (!multiplayerCurrentUser || !db) return;
     try {
         const netWorth = playerData.money + playerData.portfolioValue + playerData.limitedValue;
-        await db.collection('leaderboard').doc(multiplayerCurrentUser.uid).set({ username: playerData.username, netWorth, money: playerData.money, portfolioValue: playerData.portfolioValue, limitedValue: playerData.limitedValue, totalTrades: playerData.tradeHistory.length, babiesOwned: Object.values(playerData.portfolio).reduce((s,q)=>s+q,0), limitedsOwned: Object.values(playerData.limitedInventory).reduce((s,a)=>s+a.length,0), lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
+        await db.collection('leaderboard').doc(multiplayerCurrentUser.uid).set({ username: playerData.username, netWorth, money: playerData.money, portfolioValue: playerData.portfolioValue, limitedValue: playerData.limitedValue, totalTrades: playerData.tradeHistory.length, babiesOwned: Object.values(playerData.portfolio).reduce((acc,q)=>acc+q,0), limitedsOwned: Object.values(playerData.limitedInventory).reduce((acc,a)=>acc+a.length,0), lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
     } catch (error) { console.error('Leaderboard update failed:', error); }
 }
 
@@ -388,7 +388,7 @@ async function declineTrade(tradeId) {
     } catch (error) { console.error('Decline trade failed:', error); }
 }
 
-async function loadPlayerInventory(uid) {
+async function async loadPlayerInventory(uid) {
     if (!db) return null;
     try {
         const doc = await db.collection('users').doc(uid).get();
@@ -693,6 +693,55 @@ const AurababyMarket = () => {
         }
     };
 
+    // ── ENHANCER HELPER FUNCTIONS ──
+    const getEnhancerRarityBg = (rarity) => ({
+        Common:    'linear-gradient(135deg,#bdc3c7,#95a5a6)',
+        Rare:      'linear-gradient(135deg,#5dade2,#3498db)',
+        Epic:      'linear-gradient(135deg,#bb8fce,#9b59b6)',
+        Legendary: 'linear-gradient(135deg,#f7dc6f,#f39c12)',
+        Divine:    'linear-gradient(135deg,#ff00ff,#ff1493,#00ffff)'
+    }[rarity] || 'linear-gradient(135deg,#bdc3c7,#95a5a6)');
+
+    const getFilteredEnhancers = () => {
+        if (enhancerFilter === 'owned') return allEnhancers.filter(e => (enhancerInventory[e.id] || 0) > 0);
+        if (enhancerFilter === 'all') return allEnhancers;
+        return allEnhancers.filter(e => e.rarity.toLowerCase() === enhancerFilter);
+    };
+
+    const buyEnhancer = (enhancerId) => {
+        const enh = allEnhancers.find(e => e.id === enhancerId);
+        if (!enh || money < enh.cost) { alert('Not enough cash!'); return; }
+        const nm = money - enh.cost;
+        const nEI = { ...enhancerInventory, [enhancerId]: (enhancerInventory[enhancerId] || 0) + 1 };
+        setMoney(nm);
+        setEnhancerInventory(nEI);
+        window.gameState.money = nm;
+        window.gameState.enhancerInventory = nEI;
+        saveGameData();
+    };
+
+    const applyEnhancer = (itemId, itemSerial, enhancerId) => {
+        const enh = allEnhancers.find(e => e.id === enhancerId);
+        if (!enh) return;
+        if ((enhancerInventory[enhancerId] || 0) < 1) { alert("You don't own this enhancer!"); return; }
+        const nEI = { ...enhancerInventory, [enhancerId]: (enhancerInventory[enhancerId] || 0) - 1 };
+        const nLI = JSON.parse(JSON.stringify(limitedInventory));
+        const arr = nLI[itemId] || [];
+        const idx = arr.findIndex(i => i.serial === itemSerial);
+        if (idx === -1) { alert('Item not found'); return; }
+        if (!arr[idx].enhancers) arr[idx].enhancers = [];
+        arr[idx].enhancers.push({ id: enh.id, name: enh.name, boost: enh.boost, emoji: enh.emoji });
+        arr[idx].totalBoost = (arr[idx].totalBoost || 0) + enh.boost;
+        nLI[itemId] = arr;
+        setEnhancerInventory(nEI);
+        setLimitedInventory(nLI);
+        window.gameState.enhancerInventory = nEI;
+        window.gameState.limitedInventory = nLI;
+        saveGameData();
+        setApplyModal(null);
+        alert(`🚀 Applied ${enh.name} (+${enh.boost}%) to your limited! New boost: +${arr[idx].totalBoost}%`);
+    };
+
     const handleNameChange = async () => {
         if (!newName || newName.length < 3 || newName.length > 20) { alert('Username must be 3-20 characters'); return; }
         if (!/^[a-z0-9_]+$/i.test(newName)) { alert('Only letters, numbers, underscores'); return; }
@@ -937,7 +986,7 @@ const AurababyMarket = () => {
                         </div>
                         <div style={{ display:'flex', gap:'15px', marginBottom:'20px', flexWrap:'wrap', alignItems:'center' }}>
                             <div style={{ background:'white', padding:'12px 20px', borderRadius:'12px', boxShadow:'0 4px 15px rgba(0,0,0,0.08)', fontWeight:'800', fontSize:'16px' }}>
-                                🧪 You Own: {Object.values(enhancerInventory).reduce((s,n) => s+n, 0)} enhancers
+                                🧪 You Own: {Object.values(enhancerInventory).reduce((acc,n) => acc+n, 0)} enhancers
                             </div>
                         </div>
                         <div className="tabs" style={{ marginBottom:'20px' }}>
@@ -1007,9 +1056,9 @@ const AurababyMarket = () => {
                     <div>
                         <h1 className="view-title">📊 My Portfolio</h1>
                         <div className="stats-grid">
-                            <div className="stat-card"><div className="stat-label">Babies Owned</div><div className="stat-value">{Object.values(portfolio).reduce((s,q)=>s+q,0)}</div></div>
+                            <div className="stat-card"><div className="stat-label">Babies Owned</div><div className="stat-value">{Object.values(portfolio).reduce((acc,q)=>acc+q,0)}</div></div>
                             <div className="stat-card"><div className="stat-label">Portfolio Value</div><div className="stat-value">${getPortfolioValue().toLocaleString()}</div></div>
-                            <div className="stat-card"><div className="stat-label">Limiteds Owned</div><div className="stat-value">{Object.values(limitedInventory).reduce((s,a)=>s+a.length,0)}</div></div>
+                            <div className="stat-card"><div className="stat-label">Limiteds Owned</div><div className="stat-value">{Object.values(limitedInventory).reduce((acc,a)=>acc+a.length,0)}</div></div>
                             <div className="stat-card"><div className="stat-label">Limited Value</div><div className="stat-value">${getLimitedValue().toLocaleString()}</div></div>
                         </div>
                         <h2 style={{marginTop:'40px',marginBottom:'20px',fontSize:'28px',fontWeight:'800',color:'#2c3e50'}}>💼 Your Babies</h2>
@@ -1102,15 +1151,15 @@ const AurababyMarket = () => {
                             </div>
                             <div className="stat-card" style={{borderColor:'#e74c3c'}}>
                                 <div className="stat-label">👶 Babies Owned</div>
-                                <div className="stat-value" style={{fontSize:'28px'}}>{Object.values(portfolio).reduce((s,q)=>s+q,0)}</div>
+                                <div className="stat-value" style={{fontSize:'28px'}}>{Object.values(portfolio).reduce((acc,q)=>acc+q,0)}</div>
                             </div>
                             <div className="stat-card" style={{borderColor:'#1abc9c'}}>
                                 <div className="stat-label">💎 Limiteds Owned</div>
-                                <div className="stat-value" style={{fontSize:'28px'}}>{Object.values(limitedInventory).reduce((s,a)=>s+a.length,0)}</div>
+                                <div className="stat-value" style={{fontSize:'28px'}}>{Object.values(limitedInventory).reduce((acc,a)=>acc+a.length,0)}</div>
                             </div>
                             <div className="stat-card" style={{borderColor:'#9b59b6'}}>
                                 <div className="stat-label">🧪 Enhancers Owned</div>
-                                <div className="stat-value" style={{fontSize:'28px'}}>{Object.values(enhancerInventory).reduce((s,n)=>s+n,0)}</div>
+                                <div className="stat-value" style={{fontSize:'28px'}}>{Object.values(enhancerInventory).reduce((acc,n) => acc+n,0)}</div>
                             </div>
                             <div className="stat-card" style={{borderColor:'#f39c12'}}>
                                 <div className="stat-label">🏷️ Name Tags</div>
@@ -1132,12 +1181,12 @@ const AurababyMarket = () => {
                                 { cond: money >= 10000, icon:'💰', name:'Getting Rich', desc:'Reached $10,000 cash' },
                                 { cond: money >= 100000, icon:'🤑', name:'Six Figures', desc:'Reached $100,000 cash' },
                                 { cond: money >= 1000000, icon:'💎', name:'Millionaire', desc:'Reached $1,000,000 cash' },
-                                { cond: Object.values(portfolio).reduce((s,q)=>s+q,0) >= 10, icon:'👶', name:'Baby Collector', desc:'Own 10+ babies' },
-                                { cond: Object.values(portfolio).reduce((s,q)=>s+q,0) >= 50, icon:'🐋', name:'Whale', desc:'Own 50+ babies' },
-                                { cond: Object.values(limitedInventory).reduce((s,a)=>s+a.length,0) >= 5, icon:'✨', name:'Limited Hunter', desc:'Own 5+ limited items' },
-                                { cond: Object.values(limitedInventory).reduce((s,a)=>s+a.length,0) >= 25, icon:'🏆', name:'Limited Legend', desc:'Own 25+ limited items' },
-                                { cond: Object.values(enhancerInventory).reduce((s,n)=>s+n,0) >= 1, icon:'🧪', name:'Enhancer', desc:'Bought your first enhancer' },
-                                { cond: Object.values(enhancerInventory).reduce((s,n)=>s+n,0) >= 10, icon:'⚗️', name:'Alchemist', desc:'Own 10+ enhancers' },
+                                { cond: Object.values(portfolio).reduce((acc,q)=>acc+q,0) >= 10, icon:'👶', name:'Baby Collector', desc:'Own 10+ babies' },
+                                { cond: Object.values(portfolio).reduce((acc,q)=>acc+q,0) >= 50, icon:'🐋', name:'Whale', desc:'Own 50+ babies' },
+                                { cond: Object.values(limitedInventory).reduce((acc,a)=>acc+a.length,0) >= 5, icon:'✨', name:'Limited Hunter', desc:'Own 5+ limited items' },
+                                { cond: Object.values(limitedInventory).reduce((acc,a)=>acc+a.length,0) >= 25, icon:'🏆', name:'Limited Legend', desc:'Own 25+ limited items' },
+                                { cond: Object.values(enhancerInventory).reduce((acc,n) => acc+n,0) >= 1, icon:'🧪', name:'Enhancer', desc:'Bought your first enhancer' },
+                                { cond: Object.values(enhancerInventory).reduce((acc,n) => acc+n,0) >= 10, icon:'⚗️', name:'Alchemist', desc:'Own 10+ enhancers' },
                                 { cond: medals.length >= 1, icon:'🏅', name:'Medal Winner', desc:'Earned a monthly medal' },
                                 { cond: medals.some(m=>m.emoji==='🥇'), icon:'🥇', name:'Champion', desc:'Placed #1 in a monthly ranking' },
                             ].map((a, i) => (
@@ -1613,7 +1662,7 @@ const AurababyMarket = () => {
                     <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth:'700px' }}>
                         <h2 className="modal-title">🧪 Apply Enhancer</h2>
                         <p style={{ color:'#666', marginBottom:'20px' }}>Choose an enhancer from your inventory. This permanently boosts your limited item's value!</p>
-                        {Object.values(enhancerInventory).reduce((s,n) => s+n, 0) === 0 ? (
+                        {Object.values(enhancerInventory).reduce((acc,n) => acc+n, 0) === 0 ? (
                             <div style={{ textAlign:'center', padding:'40px', background:'#f8f9fa', borderRadius:'15px' }}>
                                 <div style={{ fontSize:'48px', marginBottom:'15px' }}>🧪</div>
                                 <h3 style={{ color:'#7f8c8d' }}>No enhancers owned!</h3>
