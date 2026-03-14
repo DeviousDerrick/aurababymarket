@@ -103,6 +103,15 @@ async function logoutUser() {
     if (confirm('Logout? Your progress is saved.')) { await saveGameData(); await auth.signOut(); }
 }
 
+// Expose auth functions globally so HTML onclick attributes can find them
+// (Babel strict mode wraps the file, so functions aren't auto-global)
+window.loginUser = loginUser;
+window.signupUser = signupUser;
+window.loginAnonymous = loginAnonymous;
+window.logoutUser = logoutUser;
+window.showLogin = showLogin;
+window.showSignup = showSignup;
+
 // ========================================
 // DATA MANAGEMENT
 // ========================================
