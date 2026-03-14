@@ -452,6 +452,11 @@ const AurababyMarket = () => {
     const [leaderboard, setLeaderboard] = useState([]);
     const [allPlayers, setAllPlayers] = useState([]);
 
+    // Enhancer state
+    const [enhancerFilter, setEnhancerFilter] = useState('all');
+    const [applyModal, setApplyModal] = useState(null);
+    const [pickEnhModal, setPickEnhModal] = useState(false);
+
     // Trade state
     const [showTradeModal, setShowTradeModal] = useState(false);
     const [tradeTarget, setTradeTarget] = useState(null);
