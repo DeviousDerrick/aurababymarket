@@ -1428,6 +1428,8 @@ const AurababyMarket = () => {
                         )}
                     </div>
                 )}
+            </div>{/* end main-content */}
+
             {/* ===== TRADE COMPOSE MODAL ===== */}
             {showTradeModal && tradeTarget && (
                 <div className="modal-overlay" onClick={() => { if (!addingSlot) setShowTradeModal(false); }}>
