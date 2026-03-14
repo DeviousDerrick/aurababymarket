@@ -298,6 +298,8 @@ async function acceptTrade(tradeId, tradeData) {
                 if ((myData.portfolio?.[item.id] || 0) < item.quantity) { alert(`You don't have enough ${item.name} (need ${item.quantity}, have ${myData.portfolio?.[item.id] || 0})`); return false; }
             } else if (item.type === 'limited') {
                 if ((myData.limitedInventory?.[item.id]?.length || 0) < item.quantity) { alert(`You don't have enough ${item.name}`); return false; }
+            } else if (item.type === 'enhancer') {
+                if ((myData.enhancerInventory?.[item.id] || 0) < item.quantity) { alert(`You don't have enough ${item.name}`); return false; }
             }
         }
         // Validate they still have what they offered
@@ -306,19 +308,26 @@ async function acceptTrade(tradeId, tradeData) {
                 if ((theirData.portfolio?.[item.id] || 0) < item.quantity) { alert(`${tradeData.fromUsername} no longer has enough ${item.name}`); return false; }
             } else if (item.type === 'limited') {
                 if ((theirData.limitedInventory?.[item.id]?.length || 0) < item.quantity) { alert(`${tradeData.fromUsername} no longer has enough ${item.name}`); return false; }
+            } else if (item.type === 'enhancer') {
+                if ((theirData.enhancerInventory?.[item.id] || 0) < item.quantity) { alert(`${tradeData.fromUsername} no longer has enough ${item.name}`); return false; }
             }
         }
 
         const myNewPortfolio = { ...myData.portfolio };
         const myNewLI = JSON.parse(JSON.stringify(myData.limitedInventory || {}));
+        const myNewEI = { ...(myData.enhancerInventory || {}) };
         const theirNewPortfolio = { ...theirData.portfolio };
         const theirNewLI = JSON.parse(JSON.stringify(theirData.limitedInventory || {}));
+        const theirNewEI = { ...(theirData.enhancerInventory || {}) };
 
         // I give them theirRequest items
         for (const item of tradeData.theirRequest) {
             if (item.type === 'baby') {
                 myNewPortfolio[item.id] = (myNewPortfolio[item.id] || 0) - item.quantity;
                 theirNewPortfolio[item.id] = (theirNewPortfolio[item.id] || 0) + item.quantity;
+            } else if (item.type === 'enhancer') {
+                myNewEI[item.id] = (myNewEI[item.id] || 0) - item.quantity;
+                theirNewEI[item.id] = (theirNewEI[item.id] || 0) + item.quantity;
             } else {
                 const toMove = (myNewLI[item.id] || []).splice(0, item.quantity);
                 theirNewLI[item.id] = [...(theirNewLI[item.id] || []), ...toMove];
@@ -329,6 +338,9 @@ async function acceptTrade(tradeId, tradeData) {
             if (item.type === 'baby') {
                 theirNewPortfolio[item.id] = (theirNewPortfolio[item.id] || 0) - item.quantity;
                 myNewPortfolio[item.id] = (myNewPortfolio[item.id] || 0) + item.quantity;
+            } else if (item.type === 'enhancer') {
+                theirNewEI[item.id] = (theirNewEI[item.id] || 0) - item.quantity;
+                myNewEI[item.id] = (myNewEI[item.id] || 0) + item.quantity;
             } else {
                 const toMove = (theirNewLI[item.id] || []).splice(0, item.quantity);
                 myNewLI[item.id] = [...(myNewLI[item.id] || []), ...toMove];
@@ -336,13 +348,14 @@ async function acceptTrade(tradeId, tradeData) {
         }
 
         const batch = db.batch();
-        batch.update(db.collection('users').doc(multiplayerCurrentUser.uid), { portfolio: myNewPortfolio, limitedInventory: myNewLI });
-        batch.update(db.collection('users').doc(tradeData.fromUid), { portfolio: theirNewPortfolio, limitedInventory: theirNewLI });
+        batch.update(db.collection('users').doc(multiplayerCurrentUser.uid), { portfolio: myNewPortfolio, limitedInventory: myNewLI, enhancerInventory: myNewEI });
+        batch.update(db.collection('users').doc(tradeData.fromUid), { portfolio: theirNewPortfolio, limitedInventory: theirNewLI, enhancerInventory: theirNewEI });
         batch.update(db.collection('tradeOffers').doc(tradeId), { status: 'accepted', acceptedAt: firebase.firestore.FieldValue.serverTimestamp() });
         await batch.commit();
 
         window.gameState.portfolio = myNewPortfolio;
         window.gameState.limitedInventory = myNewLI;
+        window.gameState.enhancerInventory = myNewEI;
         await saveGameData();
         return true;
     } catch (error) { console.error('Accept trade failed:', error); alert('Trade failed: ' + error.message); return false; }
@@ -619,11 +632,39 @@ const AurababyMarket = () => {
         setTradeTarget(player); setMyOffer([]); setTheirRequest([]); setShowTradeModal(true); setAddingSlot(null);
     };
 
+    // ── QTY PICKER ITEM: inline quantity selector so no prompt() needed ──
+    const QtyPickerItem = ({ label, sub, emoji, imgSrc, max, onAdd }) => {
+        const [qty, setQty] = React.useState(1);
+        const capped = Math.min(qty, max === 9999 ? qty : max);
+        return (
+            <div style={{background:'white',border:'2px solid #e0e0e0',borderRadius:'12px',padding:'10px',width:'118px',textAlign:'center',flexShrink:0,boxShadow:'0 2px 6px rgba(0,0,0,0.07)'}}>
+                {imgSrc
+                    ? <img src={imgSrc} alt={label} style={{width:'52px',height:'52px',objectFit:'cover',borderRadius:'8px',marginBottom:'5px'}} />
+                    : <div style={{fontSize:'30px',marginBottom:'5px'}}>{emoji}</div>}
+                <div style={{fontSize:'11px',fontWeight:'800',color:'#2c3e50',marginBottom:'2px',lineHeight:'1.3',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'98px'}}>{label}</div>
+                <div style={{fontSize:'10px',color:'#888',marginBottom:'7px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'98px'}}>{sub}</div>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',marginBottom:'7px'}}>
+                    <button onMouseDown={e=>{e.preventDefault();setQty(q=>Math.max(1,q-1));}}
+                        style={{width:'24px',height:'24px',borderRadius:'50%',border:'2px solid #667eea',background:'white',cursor:'pointer',fontWeight:'900',fontSize:'16px',lineHeight:'1',padding:'0'}}>−</button>
+                    <span style={{fontWeight:'800',fontSize:'15px',minWidth:'24px',textAlign:'center'}}>{capped}</span>
+                    <button onMouseDown={e=>{e.preventDefault();setQty(q=>q+1);}}
+                        style={{width:'24px',height:'24px',borderRadius:'50%',border:'2px solid #667eea',background:'white',cursor:'pointer',fontWeight:'900',fontSize:'16px',lineHeight:'1',padding:'0'}}>+</button>
+                </div>
+                <button onMouseDown={e=>{e.preventDefault();onAdd(capped);setQty(1);}}
+                    style={{width:'100%',padding:'7px',border:'none',borderRadius:'8px',background:'linear-gradient(135deg,#667eea,#764ba2)',color:'white',fontWeight:'800',fontSize:'12px',cursor:'pointer'}}>
+                    Add ×{capped}
+                </button>
+            </div>
+        );
+    };
+
     const addTradeSlot = (side, type, item, quantity) => {
         const list = side === 'offer' ? myOffer : theirRequest;
-        if (list.length >= 6 && !list.find(s => s.type === type && s.id === item.id)) { alert('Max 6 items per side!'); setAddingSlot(null); return; }
-        const emoji = type === 'limited' ? item.emoji : '👶';
-        const slot = { type, id: item.id, name: item.name, emoji, quantity };
+        const existing = list.find(x => x.type === type && x.id === item.id);
+        if (list.length >= 6 && !existing) { alert('Max 6 items per side!'); setAddingSlot(null); return; }
+        const emoji = (type === 'limited' || type === 'enhancer') ? item.emoji : '👶';
+        const extra = type === 'enhancer' ? { boost: item.boost, rarity: item.rarity } : {};
+        const slot = { type, id: item.id, name: item.name, emoji, quantity, ...extra };
         if (side === 'offer') {
             setMyOffer(prev => {
                 const ex = prev.find(s => s.type === type && s.id === item.id);
@@ -1013,7 +1054,7 @@ const AurababyMarket = () => {
                                                     : trade.myOffer.map((slot, i) => (
                                                         <div key={i} style={tradeSlotStyle('green')}>
                                                             <span style={{fontSize:'20px'}}>{slot.emoji}</span>
-                                                            <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}</span>
+                                                            <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}</span>
                                                         </div>
                                                     ))}
                                             </div>
@@ -1025,7 +1066,7 @@ const AurababyMarket = () => {
                                                     : trade.theirRequest.map((slot, i) => (
                                                         <div key={i} style={tradeSlotStyle('red')}>
                                                             <span style={{fontSize:'20px'}}>{slot.emoji}</span>
-                                                            <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}</span>
+                                                            <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}</span>
                                                         </div>
                                                     ))}
                                             </div>
@@ -1059,7 +1100,7 @@ const AurababyMarket = () => {
                                                 {trade.myOffer.map((slot, i) => (
                                                     <div key={i} style={tradeSlotStyle('red')}>
                                                         <span style={{fontSize:'20px'}}>{slot.emoji}</span>
-                                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}</span>
+                                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}</span>
                                                     </div>
                                                 ))}
                                                 {trade.myOffer.length === 0 && <div style={{color:'#aaa',fontStyle:'italic'}}>Nothing</div>}
@@ -1070,7 +1111,7 @@ const AurababyMarket = () => {
                                                 {trade.theirRequest.map((slot, i) => (
                                                     <div key={i} style={tradeSlotStyle('green')}>
                                                         <span style={{fontSize:'20px'}}>{slot.emoji}</span>
-                                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}</span>
+                                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}</span>
                                                     </div>
                                                 ))}
                                                 {trade.theirRequest.length === 0 && <div style={{color:'#aaa',fontStyle:'italic'}}>Nothing</div>}
@@ -1128,7 +1169,7 @@ const AurababyMarket = () => {
                                 {myOffer.map((slot, i) => (
                                     <div key={i} style={tradeSlotStyle('red')}>
                                         <span style={{fontSize:'20px'}}>{slot.emoji}</span>
-                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}</span>
+                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}</span>
                                         <button onClick={() => removeTradeSlot('offer', i)} style={{background:'none',border:'none',cursor:'pointer',color:'#e74c3c',fontSize:'18px',padding:'0 4px'}}>✕</button>
                                     </div>
                                 ))}
@@ -1147,7 +1188,7 @@ const AurababyMarket = () => {
                                 {theirRequest.map((slot, i) => (
                                     <div key={i} style={tradeSlotStyle('green')}>
                                         <span style={{fontSize:'20px'}}>{slot.emoji}</span>
-                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}</span>
+                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}</span>
                                         <button onClick={() => removeTradeSlot('request', i)} style={{background:'none',border:'none',cursor:'pointer',color:'#27ae60',fontSize:'18px',padding:'0 4px'}}>✕</button>
                                     </div>
                                 ))}
@@ -1159,15 +1200,15 @@ const AurababyMarket = () => {
 
                         {/* ---- ITEM PICKER ---- */}
                         {addingSlot && (
-                            <div style={{marginTop:'22px',background:'#f8f9fa',borderRadius:'15px',padding:'20px',maxHeight:'380px',overflowY:'auto'}}>
+                            <div style={{marginTop:'22px',background:'#f8f9fa',borderRadius:'15px',padding:'20px',maxHeight:'420px',overflowY:'auto'}}>
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'15px'}}>
                                     <strong style={{fontSize:'16px',color:'#2c3e50'}}>
-                                        {addingSlot === 'offer' ? '📤 Pick item to give:' : '📥 Pick item to request:'}
+                                        {addingSlot === 'offer' ? '📤 Pick item to offer:' : '📥 Pick item to request:'}
                                     </strong>
                                     <button onClick={() => setAddingSlot(null)} style={{background:'#e74c3c',color:'white',border:'none',borderRadius:'8px',padding:'6px 14px',cursor:'pointer',fontWeight:'700'}}>Close</button>
                                 </div>
 
-                                {/* MY BABIES (when offering) */}
+                                {/* ── BABIES ── */}
                                 {addingSlot === 'offer' && (() => {
                                     const owned = babies.filter(b => (portfolio[b.id] || 0) > 0);
                                     return owned.length > 0 ? (
@@ -1175,82 +1216,80 @@ const AurababyMarket = () => {
                                             <div style={{fontWeight:'800',color:'#2c3e50',marginBottom:'10px'}}>👶 Your Babies:</div>
                                             <div style={{display:'flex',flexWrap:'wrap',gap:'8px',marginBottom:'16px'}}>
                                                 {owned.map(baby => {
-                                                    const alreadyOffering = myOffer.find(s => s.type === 'baby' && s.id === baby.id)?.quantity || 0;
-                                                    const available = (portfolio[baby.id] || 0) - alreadyOffering;
+                                                    const alreadyOffering = myOffer.find(x => x.type==='baby' && x.id===baby.id)?.quantity || 0;
+                                                    const available = (portfolio[baby.id]||0) - alreadyOffering;
                                                     if (available <= 0) return null;
-                                                    return (
-                                                        <div key={baby.id} style={pickerItemStyle} onClick={() => {
-                                                            const qty = available > 1 ? (parseInt(prompt(`How many ${baby.name}? (max ${available})`, '1')) || 1) : 1;
-                                                            if (qty > 0 && qty <= available) addTradeSlot('offer', 'baby', baby, qty);
-                                                        }}>
-                                                            <div style={{fontSize:'11px',fontWeight:'700',marginBottom:'4px'}}>{baby.name}</div>
-                                                            <div style={{fontSize:'12px',color:'#667eea'}}>Have: {available}</div>
-                                                        </div>
-                                                    );
+                                                    return <QtyPickerItem key={baby.id} label={baby.name} sub={`Have: ${available}`} imgSrc={baby.image} max={available} onAdd={qty => addTradeSlot('offer','baby',baby,qty)} />;
                                                 })}
                                             </div>
                                         </>
-                                    ) : null;
+                                    ) : <div style={{color:'#999',fontStyle:'italic',marginBottom:'12px'}}>You don't own any babies to offer</div>;
                                 })()}
 
-                                {/* ANY BABIES (when requesting) */}
                                 {addingSlot === 'request' && (
                                     <>
                                         <div style={{fontWeight:'800',color:'#2c3e50',marginBottom:'10px'}}>👶 Request Baby:</div>
                                         <div style={{display:'flex',flexWrap:'wrap',gap:'8px',marginBottom:'16px'}}>
                                             {babies.map(baby => (
-                                                <div key={baby.id} style={pickerItemStyle} onClick={() => {
-                                                    const qty = parseInt(prompt(`How many ${baby.name}?`, '1')) || 1;
-                                                    if (qty > 0) addTradeSlot('request', 'baby', baby, qty);
-                                                }}>
-                                                    <div style={{fontSize:'11px',fontWeight:'700'}}>{baby.name}</div>
-                                                </div>
+                                                <QtyPickerItem key={baby.id} label={baby.name} sub="any qty" imgSrc={baby.image} max={9999} onAdd={qty => addTradeSlot('request','baby',baby,qty)} />
                                             ))}
                                         </div>
                                     </>
                                 )}
 
-                                {/* MY LIMITEDS (when offering) */}
+                                {/* ── LIMITEDS ── */}
                                 {addingSlot === 'offer' && (() => {
-                                    const owned = limitedItems.filter(item => (limitedInventory[item.id]?.length || 0) > 0);
+                                    const owned = limitedItems.filter(i => (limitedInventory[i.id]?.length||0) > 0);
                                     return owned.length > 0 ? (
                                         <>
                                             <div style={{fontWeight:'800',color:'#2c3e50',marginBottom:'10px'}}>💎 Your Limiteds:</div>
-                                            <div style={{display:'flex',flexWrap:'wrap',gap:'8px'}}>
+                                            <div style={{display:'flex',flexWrap:'wrap',gap:'8px',marginBottom:'16px'}}>
                                                 {owned.map(item => {
-                                                    const alreadyOffering = myOffer.find(s => s.type === 'limited' && s.id === item.id)?.quantity || 0;
-                                                    const available = (limitedInventory[item.id]?.length || 0) - alreadyOffering;
+                                                    const alreadyOffering = myOffer.find(x => x.type==='limited' && x.id===item.id)?.quantity || 0;
+                                                    const available = (limitedInventory[item.id]?.length||0) - alreadyOffering;
                                                     if (available <= 0) return null;
-                                                    return (
-                                                        <div key={item.id} style={pickerItemStyle} onClick={() => {
-                                                            const qty = available > 1 ? (parseInt(prompt(`How many ${item.name}? (max ${available})`, '1')) || 1) : 1;
-                                                            if (qty > 0 && qty <= available) addTradeSlot('offer', 'limited', item, qty);
-                                                        }}>
-                                                            <div style={{fontSize:'22px'}}>{item.emoji}</div>
-                                                            <div style={{fontSize:'11px',fontWeight:'700',marginTop:'4px'}}>{item.name}</div>
-                                                            <div style={{fontSize:'11px',color:'#667eea'}}>Have: {available}</div>
-                                                        </div>
-                                                    );
+                                                    return <QtyPickerItem key={item.id} label={item.name} sub={`Have: ${available}`} emoji={item.emoji} max={available} onAdd={qty => addTradeSlot('offer','limited',item,qty)} />;
                                                 })}
                                             </div>
                                         </>
-                                    ) : <div style={{color:'#999',fontStyle:'italic'}}>You don't own any limiteds to offer</div>;
+                                    ) : <div style={{color:'#999',fontStyle:'italic',marginBottom:'12px'}}>You don't own any limiteds to offer</div>;
                                 })()}
 
-                                {/* ANY LIMITEDS (when requesting) */}
-                                {addingSlot === 'request' && limitedItems.length > 0 && (
+                                {addingSlot === 'request' && (
                                     <>
                                         <div style={{fontWeight:'800',color:'#2c3e50',marginBottom:'10px'}}>💎 Request Limited:</div>
-                                        <div style={{display:'flex',flexWrap:'wrap',gap:'8px'}}>
+                                        <div style={{display:'flex',flexWrap:'wrap',gap:'8px',marginBottom:'16px'}}>
                                             {limitedItems.map(item => (
-                                                <div key={item.id} style={pickerItemStyle} onClick={() => {
-                                                    const qty = parseInt(prompt(`How many ${item.name}?`, '1')) || 1;
-                                                    if (qty > 0) addTradeSlot('request', 'limited', item, qty);
-                                                }}>
-                                                    <div style={{fontSize:'22px'}}>{item.emoji}</div>
-                                                    <div style={{fontSize:'11px',fontWeight:'700',marginTop:'4px'}}>{item.name}</div>
-                                                    <div style={{fontSize:'11px',color:'#95a5a6'}}>{item.rarity}</div>
-                                                </div>
+                                                <QtyPickerItem key={item.id} label={item.name} sub={item.rarity} emoji={item.emoji} max={9999} onAdd={qty => addTradeSlot('request','limited',item,qty)} />
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* ── ENHANCERS ── */}
+                                {addingSlot === 'offer' && (() => {
+                                    const owned = allEnhancers.filter(e => (enhancerInventory[e.id]||0) > 0);
+                                    return owned.length > 0 ? (
+                                        <>
+                                            <div style={{fontWeight:'800',color:'#9b59b6',marginBottom:'10px'}}>🧪 Your Enhancers:</div>
+                                            <div style={{display:'flex',flexWrap:'wrap',gap:'8px',marginBottom:'16px'}}>
+                                                {owned.map(enh => {
+                                                    const alreadyOffering = myOffer.find(x => x.type==='enhancer' && x.id===enh.id)?.quantity || 0;
+                                                    const available = (enhancerInventory[enh.id]||0) - alreadyOffering;
+                                                    if (available <= 0) return null;
+                                                    return <QtyPickerItem key={enh.id} label={enh.name} sub={`+${enh.boost}% | Have: ${available}`} emoji={enh.emoji} max={available} onAdd={qty => addTradeSlot('offer','enhancer',enh,qty)} />;
+                                                })}
+                                            </div>
+                                        </>
+                                    ) : <div style={{color:'#999',fontStyle:'italic',marginBottom:'12px'}}>You don't own any enhancers to offer</div>;
+                                })()}
+
+                                {addingSlot === 'request' && (
+                                    <>
+                                        <div style={{fontWeight:'800',color:'#9b59b6',marginBottom:'10px'}}>🧪 Request Enhancer:</div>
+                                        <div style={{display:'flex',flexWrap:'wrap',gap:'8px',marginBottom:'16px'}}>
+                                            {allEnhancers.map(enh => (
+                                                <QtyPickerItem key={enh.id} label={enh.name} sub={`+${enh.boost}% ${enh.rarity}`} emoji={enh.emoji} max={9999} onAdd={qty => addTradeSlot('request','enhancer',enh,qty)} />
                                             ))}
                                         </div>
                                     </>
