@@ -14,6 +14,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+// Keep user logged in across page refreshes
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 let currentUserAuth = null;
 let userDocRef = null;
 let gameStateLoaded = false;
@@ -126,6 +129,8 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById('auth-container').style.display = 'none';
         document.getElementById('game-container').style.display = 'block';
         if (!gameStateLoaded) gameStateLoaded = true;
+        // Fire event so React component knows to sync immediately
+        window.dispatchEvent(new CustomEvent('gameStateLoaded'));
     } else {
         currentUserAuth = null; userDocRef = null; gameStateLoaded = false;
         document.getElementById('auth-container').style.display = 'flex';
@@ -570,32 +575,34 @@ const AurababyMarket = () => {
     const previousPricesRef = useRef({});
     const chartRef = useRef(null);
 
+    // Sync all state from window.gameState
+    const syncFromGameState = () => {
+        if (!window.gameState) return;
+        setUsername(window.gameState.username || 'Player');
+        setMoney(typeof window.gameState.money === 'number' ? window.gameState.money : 1000);
+        setPortfolio(window.gameState.portfolio || {});
+        setLimitedInventory(window.gameState.limitedInventory || {});
+        setTradeHistory(window.gameState.tradeHistory || []);
+        setNameTagsOwned(window.gameState.nameTagsOwned || 0);
+        setHasChangedName(window.gameState.hasChangedName || false);
+        setEnhancerInventory(window.gameState.enhancerInventory || {});
+        setMedals(window.gameState.medals || []);
+    };
+
     useEffect(() => {
-        if (window.gameState) {
-            setUsername(window.gameState.username || 'Player');
-            setMoney(window.gameState.money || 1000);
-            setPortfolio(window.gameState.portfolio || {});
-            setLimitedInventory(window.gameState.limitedInventory || {});
-            setTradeHistory(window.gameState.tradeHistory || []);
-            setNameTagsOwned(window.gameState.nameTagsOwned || 0);
-            setHasChangedName(window.gameState.hasChangedName || false);
-            setEnhancerInventory(window.gameState.enhancerInventory || {});
-            setMedals(window.gameState.medals || []);
-        }
-        const syncInterval = setInterval(() => {
-            if (window.gameState) {
-                setUsername(window.gameState.username);
-                setMoney(window.gameState.money);
-                setPortfolio(window.gameState.portfolio);
-                setLimitedInventory(window.gameState.limitedInventory);
-                setTradeHistory(window.gameState.tradeHistory);
-                setNameTagsOwned(window.gameState.nameTagsOwned);
-                setHasChangedName(window.gameState.hasChangedName);
-                setEnhancerInventory(window.gameState.enhancerInventory || {});
-                setMedals(window.gameState.medals || []);
-            }
-        }, 1000);
-        return () => clearInterval(syncInterval);
+        // Sync immediately if gameState already loaded (e.g. fast auth)
+        syncFromGameState();
+
+        // Listen for the event fired after Firebase loadGameData completes
+        window.addEventListener('gameStateLoaded', syncFromGameState);
+
+        // Also poll every second as a safety net
+        const syncInterval = setInterval(syncFromGameState, 1000);
+
+        return () => {
+            clearInterval(syncInterval);
+            window.removeEventListener('gameStateLoaded', syncFromGameState);
+        };
     }, []);
 
     useEffect(() => {
