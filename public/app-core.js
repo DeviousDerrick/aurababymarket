@@ -402,7 +402,7 @@ async function declineTrade(tradeId) {
     } catch (error) { console.error('Decline trade failed:', error); }
 }
 
-async function async loadPlayerInventory(uid) {
+async function loadPlayerInventory(uid) {
     if (!db) return null;
     try {
         const doc = await db.collection('users').doc(uid).get();
