@@ -641,22 +641,38 @@ const AurababyMarket = () => {
                         </div>
                         <h2 style={{marginTop:'40px',marginBottom:'20px',fontSize:'28px',fontWeight:'800',color:'#2c3e50'}}>💎 Your Limiteds</h2>
                         <div className="card-grid">
-                            {Object.keys(limitedInventory).filter(id => limitedInventory[id].length > 0).map(itemId => {
+                            {Object.keys(limitedInventory).filter(id => limitedInventory[id].length > 0).flatMap(itemId => {
                                 const item = limitedItems.find(i => i.id === itemId);
-                                const qty = limitedInventory[itemId].length; const value = limitedValues[itemId] || 0;
-                                return item ? (
-                                    <div key={itemId} className={`card limited-card rarity-${item.rarity.toLowerCase()}`}>
-                                        <div className={`limited-badge rarity-${item.rarity.toLowerCase()}`}>{item.rarity}</div>
-                                        <div className="limited-emoji">{item.emoji}</div>
-                                        <h3 className="card-title">{item.name}</h3>
-                                        <div style={{textAlign:'center',color:'white',marginBottom:'10px'}}>
-                                            <div>Owned: {qty}</div>
-                                            <div>Value Each: ${value.toFixed(2)}</div>
+                                if (!item) return [];
+                                const baseVal = limitedValues[itemId] || 0;
+                                return (limitedInventory[itemId] || []).map((ownedItem, oi) => {
+                                    const boost = ownedItem.totalBoost || 0;
+                                    const boostedVal = baseVal * (1 + boost / 100);
+                                    return (
+                                        <div key={`${itemId}-${oi}`} className={`card limited-card rarity-${item.rarity.toLowerCase()}`}>
+                                            <div className={`limited-badge rarity-${item.rarity.toLowerCase()}`}>{item.rarity}</div>
+                                            <div className="limited-emoji" style={{fontSize:'60px'}}>{item.emoji}</div>
+                                            <h3 className="card-title" style={{color:'white'}}>{item.name}</h3>
+                                            <div style={{textAlign:'center',color:'white',marginBottom:'8px',fontSize:'13px'}}>
+                                                <div>Base: ${baseVal.toFixed(0)}</div>
+                                                {boost > 0 && <div style={{color:'#2ecc71',fontWeight:'800'}}>+{boost}% boost</div>}
+                                                <div style={{fontSize:'18px',fontWeight:'800',marginTop:'4px'}}>Value: ${boostedVal.toFixed(0)}</div>
+                                            </div>
+                                            {(ownedItem.enhancers || []).length > 0 && (
+                                                <div style={{background:'rgba(0,0,0,0.2)',borderRadius:'8px',padding:'6px',marginBottom:'8px'}}>
+                                                    {(ownedItem.enhancers || []).map((e,i) => (
+                                                        <div key={i} style={{fontSize:'11px',color:'white'}}>{e.emoji} {e.name} +{e.boost}%</div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            <button onClick={() => setApplyModal({ itemId, serial: ownedItem.serial })}
+                                                style={{width:'100%',padding:'10px',border:'none',borderRadius:'10px',background:'rgba(255,255,255,0.9)',color:'#2c3e50',fontWeight:'800',fontSize:'14px',cursor:'pointer',marginBottom:'6px'}}>
+                                                🧪 Apply Enhancer
+                                            </button>
+                                            <div style={{textAlign:'center',fontSize:'11px',color:'rgba(255,255,255,0.7)'}}>Trade via 🤝 Trade tab</div>
                                         </div>
-                                        <div className="card-price" style={{color:'white'}}>${(qty * value).toFixed(2)}</div>
-                                        <div style={{textAlign:'center',fontSize:'12px',color:'rgba(255,255,255,0.8)',marginTop:'8px'}}>Trade via the 🤝 Trade tab!</div>
-                                    </div>
-                                ) : null;
+                                    );
+                                });
                             })}
                         </div>
                     </div>
