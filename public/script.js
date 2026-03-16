@@ -1762,16 +1762,11 @@ const AurababyMarket = () => {
 
 ReactDOM.render(<AurababyMarket />, document.getElementById('root'));
 
-// Wire up auth buttons AFTER Babel finishes compiling
-// This guarantees loginUser etc are defined before any click happens
-(function wireAuthButtons() {
-    function wire(id, fn) {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('click', fn);
-    }
-    wire('btn-login',       () => loginUser());
-    wire('btn-show-signup', () => showSignup());
-    wire('btn-guest',       () => loginAnonymous());
-    wire('btn-signup',      () => signupUser());
-    wire('btn-show-login',  () => showLogin());
-})();
+// Register real functions so the shims in index.html can call them
+// (Babel is now done compiling, so all functions are defined)
+window._real_loginUser      = loginUser;
+window._real_showSignup     = showSignup;
+window._real_showLogin      = showLogin;
+window._real_signupUser     = signupUser;
+window._real_loginAnonymous = loginAnonymous;
+window._real_logoutUser     = logoutUser;
