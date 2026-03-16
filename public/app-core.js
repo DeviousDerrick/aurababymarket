@@ -279,13 +279,14 @@ async function sendTradeOffer(toUid, toUsername, myOffer, theirRequest, moneyOff
 async function loadMyTrades() {
     if (!multiplayerCurrentUser || !db) return { sent: [], received: [] };
     try {
-        const sentSnap = await db.collection('tradeOffers').where('fromUid','==',multiplayerCurrentUser.uid).where('status','==','pending').orderBy('createdAt','desc').get();
-        const recvSnap = await db.collection('tradeOffers').where('toUid','==',multiplayerCurrentUser.uid).where('status','==','pending').orderBy('createdAt','desc').get();
+        const sentSnap = await db.collection('tradeOffers').where('fromUid','==',multiplayerCurrentUser.uid).where('status','==','pending').get();
+        const recvSnap = await db.collection('tradeOffers').where('toUid','==',multiplayerCurrentUser.uid).where('status','==','pending').get();
         const sent = [], received = [];
         sentSnap.forEach(doc => sent.push({ id: doc.id, ...doc.data() }));
         recvSnap.forEach(doc => received.push({ id: doc.id, ...doc.data() }));
-        return { sent, received };
-    } catch (error) { return { sent: [], received: [] }; }
+        const sortFn = (a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0);
+        return { sent: sent.sort(sortFn), received: received.sort(sortFn) };
+    } catch (error) { console.error('loadMyTrades failed:', error); return { sent: [], received: [] }; }
 }
 
 function listenToIncomingTrades(callback) {
