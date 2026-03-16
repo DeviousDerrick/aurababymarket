@@ -416,11 +416,19 @@ const AurababyMarket = () => {
 
     const handleAcceptTrade = async (trade) => {
         const ok = await window.multiplayer.acceptTrade(trade.id, trade);
-        if (ok) { setTradeSuccess('Trade accepted! Items have been swapped.'); setTimeout(() => setTradeSuccess(''), 4000); }
+        if (ok) {
+            setTradeSuccess('✅ Trade accepted! Items swapped.');
+            setTimeout(() => setTradeSuccess(''), 4000);
+            // Reload game data so inventory updates immediately
+            await loadGameData();
+            syncFromGameState();
+        }
     };
 
     const handleDeclineTrade = async (tradeId) => {
         await window.multiplayer.declineTrade(tradeId);
+        // Refresh both sent and incoming lists
+        window.multiplayer.loadMyTrades().then(({ sent }) => setSentTrades(sent));
     };
 
     const getFilteredLimiteds = () => limitedFilter === 'all' ? limitedItems : limitedItems.filter(i => i.rarity.toLowerCase() === limitedFilter);
@@ -896,7 +904,7 @@ const AurababyMarket = () => {
                                         </div>
                                         <div style={{display:'flex',gap:'12px'}}>
                                             <button onClick={() => handleAcceptTrade(trade)} className="btn btn-success" style={{flex:1,padding:'14px',fontSize:'16px'}}>✅ Accept</button>
-                                            <button onClick={() => handleDeclineTrade(trade.id)} className="btn btn-danger" style={{flex:1,padding:'14px',fontSize:'16px'}}>❌ Decline</button>
+                                            <button onClick={() => { if(confirm('Decline this trade offer?')) handleDeclineTrade(trade.id); }} className="btn btn-danger" style={{flex:1,padding:'14px',fontSize:'16px'}}>❌ Decline</button>
                                         </div>
                                     </div>
                                 ))}
@@ -940,7 +948,7 @@ const AurababyMarket = () => {
                                                 {trade.theirRequest.length === 0 && <div style={{color:'#aaa',fontStyle:'italic'}}>Nothing</div>}
                                             </div>
                                         </div>
-                                        <button onClick={() => handleDeclineTrade(trade.id)} className="btn btn-danger" style={{width:'100%'}}>🗑️ Cancel Offer</button>
+                                        <button onClick={() => { if(confirm('Cancel this trade offer?')) handleDeclineTrade(trade.id); }} className="btn btn-danger" style={{width:'100%'}}>🗑️ Cancel Offer</button>
                                     </div>
                                 ))}
                             </div>
