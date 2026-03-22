@@ -59,6 +59,7 @@ const AurababyMarket = () => {
 
     const limitedItems = typeof LIMITEDS !== 'undefined' ? LIMITEDS : [];
     const allEnhancers = typeof ENHANCERS !== 'undefined' ? ENHANCERS : [];
+    const allGenerators = typeof GENERATORS !== 'undefined' ? GENERATORS : [];
 
     const [money, setMoney] = useState(1000);
     const [username, setUsername] = useState('Player');
@@ -68,6 +69,9 @@ const AurababyMarket = () => {
     const [limitedInventory, setLimitedInventory] = useState({});
     const [tradeHistory, setTradeHistory] = useState([]);
     const [enhancerInventory, setEnhancerInventory] = useState({});
+    const [generatorInventory, setGeneratorInventory] = useState({});
+    const [generatorPrices, setGeneratorPrices] = useState({});
+    const [generatorFilter, setGeneratorFilter] = useState('all');
     const [prices, setPrices] = useState({});
     const [limitedValues, setLimitedValues] = useState({});
     const [priceHistory, setPriceHistory] = useState([]);
@@ -121,6 +125,7 @@ const AurababyMarket = () => {
         setNameTagsOwned(window.gameState.nameTagsOwned || 0);
         setHasChangedName(window.gameState.hasChangedName || false);
         setEnhancerInventory(window.gameState.enhancerInventory || {});
+        setGeneratorInventory(window.gameState.generatorInventory || {});
         setMedals(window.gameState.medals || []);
     };
 
@@ -141,10 +146,11 @@ const AurababyMarket = () => {
     }, []);
 
     useEffect(() => {
-        window.multiplayer.initializeGlobalPrices(babies.map(b => b.id), limitedItems);
+        window.multiplayer.initializeGlobalPrices(babies.map(b => b.id), limitedItems, allGenerators);
         const unsub = window.multiplayer.listenToGlobalPrices((priceData) => {
             previousPricesRef.current = { ...prices };
             setPrices(priceData.babyPrices); setLimitedValues(priceData.limitedValues);
+            if (priceData.generatorPrices) setGeneratorPrices(priceData.generatorPrices);
             setPriceHistory(priceData.priceHistory || []); setNextUpdateTime(priceData.nextUpdateTime);
             setUpdateCount(priceData.updateCount); setPricesLoaded(true);
             if (priceData.updateCount > 0) { setShowUpdateNotice(true); setTimeout(() => setShowUpdateNotice(false), 5000); }
@@ -170,6 +176,38 @@ const AurababyMarket = () => {
 
     useEffect(() => {
         const t = setInterval(() => { setMoney(prev => { const n = prev + 200; window.gameState.money = n; saveGameData(); return n; }); }, 90000);
+        return () => clearInterval(t);
+    }, []);
+
+    // Generator passive income - fires every 2 minutes
+    useEffect(() => {
+        const t = setInterval(() => {
+            const inv = window.gameState.generatorInventory || {};
+            let earned = 0;
+            allGenerators.forEach(g => {
+                const count = inv[g.id] || 0;
+                if (count > 0) {
+                    const income = Math.floor(Math.random() * (g.incomeMax - g.incomeMin + 1)) + g.incomeMin;
+                    earned += income * count;
+                }
+            });
+            if (earned > 0) {
+                setMoney(prev => {
+                    const n = prev + earned;
+                    window.gameState.money = n;
+                    saveGameData();
+                    return n;
+                });
+            }
+        }, 120000); // every 2 minutes
+        return () => clearInterval(t);
+    }, [generatorInventory]);
+
+    // Update generator prices every hour
+    useEffect(() => {
+        const t = setInterval(() => {
+            window.multiplayer.forceUpdateGeneratorPrices(allGenerators);
+        }, 60 * 60 * 1000);
         return () => clearInterval(t);
     }, []);
 
@@ -277,6 +315,40 @@ const AurababyMarket = () => {
         window.gameState.enhancerInventory = nEI;
         saveGameData();
         window.multiplayer.updateLeaderboard({ username, money: nm, portfolioValue: getPortfolioValue(), limitedValue: getLimitedValue(), portfolio, limitedInventory, tradeHistory });
+    };
+
+    const buyGenerator = (genId) => {
+        const gen = allGenerators.find(g => g.id === genId);
+        if (!gen) return;
+        const price = generatorPrices[genId] || gen.baseCost;
+        if (money < price) { alert('Not enough cash!'); return; }
+        const nm = money - price;
+        const nGI = { ...generatorInventory, [genId]: (generatorInventory[genId] || 0) + 1 };
+        setMoney(nm);
+        setGeneratorInventory(nGI);
+        window.gameState.money = nm;
+        window.gameState.generatorInventory = nGI;
+        saveGameData();
+        window.multiplayer.updateLeaderboard({ username, money: nm, portfolioValue: getPortfolioValue(), limitedValue: getLimitedValue(), portfolio, limitedInventory, tradeHistory });
+        alert(`✅ Bought ${gen.emoji} ${gen.name}! It will generate $${gen.incomeMin}-$${gen.incomeMax} every 2 minutes!`);
+    };
+
+    const getGeneratorRarityBg = (rarity) => ({
+        Common:    'linear-gradient(135deg,#bdc3c7,#95a5a6)',
+        Rare:      'linear-gradient(135deg,#5dade2,#3498db)',
+        Epic:      'linear-gradient(135deg,#bb8fce,#9b59b6)',
+        Legendary: 'linear-gradient(135deg,#f7dc6f,#f39c12)',
+        Divine:    'linear-gradient(135deg,#ff00ff,#ff1493,#00ffff)'
+    }[rarity] || 'linear-gradient(135deg,#bdc3c7,#95a5a6)');
+
+    const getTotalGeneratorIncome = () => {
+        let min = 0, max = 0;
+        allGenerators.forEach(g => {
+            const count = generatorInventory[g.id] || 0;
+            min += g.incomeMin * count;
+            max += g.incomeMax * count;
+        });
+        return { min, max };
     };
 
     const applyEnhancer = (itemId, itemSerial, enhancerId) => {
@@ -490,6 +562,7 @@ const AurababyMarket = () => {
                     ['market','🏪 Market'],
                     ['limited','💎 Limiteds (440)'],
                     ['enhancers','🧪 Enhancers'],
+                    ['generators','⛏️ Generators'],
                     ['portfolio','📊 Portfolio'],
                     ['profile','👤 Profile'],
                     ['trades','📜 History'],
@@ -533,6 +606,75 @@ const AurababyMarket = () => {
                                     </div>
                                 );
                             })}
+                        </div>
+                    </div>
+                )}
+
+                {/* GENERATORS */}
+                {currentView === 'generators' && (
+                    <div>
+                        <h1 className="view-title">⛏️ Generator Shop</h1>
+                        <p className="view-subtitle">Buy generators for passive income every 2 minutes! Prices fluctuate every hour.</p>
+
+                        {/* Income summary */}
+                        {(() => {
+                            const { min, max } = getTotalGeneratorIncome();
+                            const totalOwned = Object.values(generatorInventory).reduce((acc,n) => acc+n, 0);
+                            return totalOwned > 0 ? (
+                                <div style={{background:'linear-gradient(135deg,#27ae60,#229954)',borderRadius:'15px',padding:'20px',marginBottom:'25px',color:'white',display:'flex',alignItems:'center',gap:'20px',boxShadow:'0 4px 15px rgba(39,174,96,0.3)'}}>
+                                    <span style={{fontSize:'40px'}}>💰</span>
+                                    <div>
+                                        <div style={{fontWeight:'800',fontSize:'20px'}}>Your Generators earn ${min.toLocaleString()}–${max.toLocaleString()} every 2 minutes!</div>
+                                        <div style={{opacity:0.9,marginTop:'4px'}}>You own {totalOwned} generator{totalOwned!==1?'s':''} across {Object.keys(generatorInventory).filter(k=>generatorInventory[k]>0).length} types</div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{background:'linear-gradient(135deg,#e67e22,#f39c12)',borderRadius:'15px',padding:'20px',marginBottom:'25px',color:'white',boxShadow:'0 4px 15px rgba(230,126,34,0.3)'}}>
+                                    <strong style={{fontSize:'18px'}}>⚡ How It Works:</strong> Buy a generator → it automatically earns you money every 2 minutes! Stack multiple generators for massive passive income. Prices change every hour!
+                                </div>
+                            );
+                        })()}
+
+                        {/* Filter tabs */}
+                        <div className="tabs" style={{marginBottom:'20px'}}>
+                            {[['all','All'],['owned','⭐ Owned'],['common','Common'],['rare','Rare'],['epic','Epic'],['legendary','Legendary'],['divine','✨ Divine']].map(([f,label]) => (
+                                <button key={f} onClick={() => setGeneratorFilter(f)} className={`tab-button ${generatorFilter===f?'active':''}`}>{label}</button>
+                            ))}
+                        </div>
+
+                        <div className="card-grid">
+                            {allGenerators
+                                .filter(g => generatorFilter === 'all' ? true : generatorFilter === 'owned' ? (generatorInventory[g.id]||0) > 0 : g.rarity.toLowerCase() === generatorFilter)
+                                .map(gen => {
+                                    const price = generatorPrices[gen.id] || gen.baseCost;
+                                    const owned = generatorInventory[gen.id] || 0;
+                                    const isDivine = gen.rarity === 'Divine';
+                                    const isLegendary = gen.rarity === 'Legendary';
+                                    return (
+                                        <div key={gen.id} style={{background: getGeneratorRarityBg(gen.rarity), borderRadius:'18px', padding:'20px', color:'white', position:'relative', boxShadow: isDivine ? '0 0 30px rgba(255,0,255,0.6)' : isLegendary ? '0 0 20px rgba(243,156,18,0.4)' : '0 4px 15px rgba(0,0,0,0.15)', animation: isDivine ? 'divine-glow 3s ease-in-out infinite' : 'none'}}>
+                                            <div style={{position:'absolute',top:'12px',right:'12px',background:'rgba(0,0,0,0.3)',padding:'4px 10px',borderRadius:'12px',fontSize:'11px',fontWeight:'800'}}>{gen.rarity}</div>
+                                            <div style={{fontSize:'56px',textAlign:'center',marginBottom:'10px'}}>{gen.emoji}</div>
+                                            <h3 style={{textAlign:'center',fontSize:'17px',marginBottom:'10px',fontWeight:'800'}}>{gen.name}</h3>
+                                            <div style={{background:'rgba(0,0,0,0.25)',borderRadius:'12px',padding:'10px',marginBottom:'10px',textAlign:'center'}}>
+                                                <div style={{fontSize:'13px',opacity:0.85}}>Earns every 2 min:</div>
+                                                <div style={{fontSize:'22px',fontWeight:'800'}}>${gen.incomeMin.toLocaleString()}–${gen.incomeMax.toLocaleString()}</div>
+                                            </div>
+                                            <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',marginBottom:'10px',opacity:0.9}}>
+                                                <span>📈 Price: ${price.toLocaleString()}</span>
+                                                <span>🔄 Updates hourly</span>
+                                            </div>
+                                            {owned > 0 && (
+                                                <div style={{background:'rgba(255,255,255,0.25)',borderRadius:'10px',padding:'7px',marginBottom:'8px',textAlign:'center',fontWeight:'800',fontSize:'14px'}}>
+                                                    ✅ Owned: {owned} → +${(gen.incomeMin*owned).toLocaleString()}–${(gen.incomeMax*owned).toLocaleString()}/2min
+                                                </div>
+                                            )}
+                                            <button onClick={() => buyGenerator(gen.id)} disabled={money < price}
+                                                style={{width:'100%',padding:'13px',border:'none',borderRadius:'10px',background:money>=price?'rgba(255,255,255,0.92)':'rgba(255,255,255,0.25)',color:money>=price?'#2c3e50':'rgba(255,255,255,0.6)',fontWeight:'800',fontSize:'15px',cursor:money>=price?'pointer':'not-allowed'}}>
+                                                {money >= price ? `BUY $${price.toLocaleString()}` : `Need $${price.toLocaleString()}`}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                         </div>
                     </div>
                 )}
