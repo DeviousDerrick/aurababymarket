@@ -38,6 +38,7 @@ window.gameState = {
     highestNetWorth: 1000,
     priceHistory: [],
     enhancerInventory: {},
+    generatorInventory: {},
     medals: [],
     createdAt: null
 };
@@ -157,7 +158,7 @@ async function loadGameData() {
 async function saveGameData() {
     if (!userDocRef || !window.gameState) return;
     try {
-        await userDocRef.set({ username: window.gameState.username, money: window.gameState.money, portfolio: window.gameState.portfolio, limitedInventory: window.gameState.limitedInventory, nameTagsOwned: window.gameState.nameTagsOwned, hasChangedName: window.gameState.hasChangedName, tradeHistory: window.gameState.tradeHistory, highestMoney: window.gameState.highestMoney, highestNetWorth: window.gameState.highestNetWorth, priceHistory: window.gameState.priceHistory, createdAt: window.gameState.createdAt || firebase.firestore.FieldValue.serverTimestamp(), lastSaved: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        await userDocRef.set({ username: window.gameState.username, money: window.gameState.money, portfolio: window.gameState.portfolio, limitedInventory: window.gameState.limitedInventory, enhancerInventory: window.gameState.enhancerInventory || {}, generatorInventory: window.gameState.generatorInventory || {}, medals: window.gameState.medals || [], nameTagsOwned: window.gameState.nameTagsOwned, hasChangedName: window.gameState.hasChangedName, tradeHistory: window.gameState.tradeHistory, highestMoney: window.gameState.highestMoney, highestNetWorth: window.gameState.highestNetWorth, priceHistory: window.gameState.priceHistory, createdAt: window.gameState.createdAt || firebase.firestore.FieldValue.serverTimestamp(), lastSaved: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
     } catch (error) { console.error('Save failed:', error); }
 }
 
@@ -208,6 +209,29 @@ async function forceUpdateGlobalPrices(babies, limitedItems) {
         await db.collection('globalPrices').doc('current').update({ babyPrices: newBP, limitedValues: newLV, priceHistory: ph, lastUpdate: firebase.firestore.FieldValue.serverTimestamp(), nextUpdateTime: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 5 * 60 * 1000)), updateCount: (d.updateCount || 0) + 1 });
         return true;
     } catch (error) { console.error('Update failed:', error); return false; }
+}
+
+async function forceUpdateGeneratorPrices(generators) {
+    if (!db || !generators) return false;
+    try {
+        const priceDoc = await db.collection('globalPrices').doc('current').get();
+        if (!priceDoc.exists) return false;
+        const currentData = priceDoc.data();
+        const newGenPrices = { ...(currentData.generatorPrices || {}) };
+        generators.forEach(g => {
+            const cur = newGenPrices[g.id] || g.baseCost;
+            const change = (Math.random() * 0.3 - 0.15);
+            let np = cur * (1 + change);
+            if (np < g.minCost) np = g.minCost;
+            if (np > g.maxCost) np = g.maxCost;
+            newGenPrices[g.id] = Math.round(np / 50) * 50;
+        });
+        await db.collection('globalPrices').doc('current').update({
+            generatorPrices: newGenPrices,
+            generatorNextUpdate: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 60 * 60 * 1000))
+        });
+        return true;
+    } catch (e) { console.error('Generator price update failed:', e); return false; }
 }
 
 function listenToGlobalPrices(callback) {
@@ -337,6 +361,8 @@ async function acceptTrade(tradeId, tradeData) {
                 if ((myData.limitedInventory?.[item.id]?.length || 0) < item.quantity) { alert(`You don't have enough ${item.name}`); return false; }
             } else if (item.type === 'enhancer') {
                 if ((myData.enhancerInventory?.[item.id] || 0) < item.quantity) { alert(`You don't have enough ${item.name}`); return false; }
+            } else if (item.type === 'generator') {
+                if ((myData.generatorInventory?.[item.id] || 0) < item.quantity) { alert(`You don't have enough ${item.name}`); return false; }
             }
         }
         // Validate they still have what they offered
@@ -398,10 +424,10 @@ async function acceptTrade(tradeId, tradeData) {
 
         const batch = db.batch();
         batch.update(db.collection('users').doc(multiplayerCurrentUser.uid), {
-            portfolio: myNewPortfolio, limitedInventory: myNewLI, enhancerInventory: myNewEI, money: myNewMoney
+            portfolio: myNewPortfolio, limitedInventory: myNewLI, enhancerInventory: myNewEI, generatorInventory: myNewGI, money: myNewMoney
         });
         batch.update(db.collection('users').doc(tradeData.fromUid), {
-            portfolio: theirNewPortfolio, limitedInventory: theirNewLI, enhancerInventory: theirNewEI, money: theirNewMoney
+            portfolio: theirNewPortfolio, limitedInventory: theirNewLI, enhancerInventory: theirNewEI, generatorInventory: theirNewGI, money: theirNewMoney
         });
         batch.update(db.collection('tradeOffers').doc(tradeId), { status: 'accepted', acceptedAt: firebase.firestore.FieldValue.serverTimestamp() });
         await batch.commit();
@@ -409,6 +435,7 @@ async function acceptTrade(tradeId, tradeData) {
         window.gameState.portfolio = myNewPortfolio;
         window.gameState.limitedInventory = myNewLI;
         window.gameState.enhancerInventory = myNewEI;
+        window.gameState.generatorInventory = myNewGI;
         window.gameState.money = myNewMoney;
         await saveGameData();
         return true;
@@ -478,7 +505,7 @@ window.multiplayer = {
     initializeGlobalPrices, forceUpdateGlobalPrices, listenToGlobalPrices,
     updateLeaderboard, loadLeaderboard, loadAllPlayers, loadPlayerInventory,
     sendTradeOffer, loadMyTrades, listenToIncomingTrades, acceptTrade, declineTrade,
-    listenToLeaderboard,
+    listenToLeaderboard, forceUpdateGeneratorPrices,
     awardMonthlyMedals
 };
 
