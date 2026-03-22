@@ -291,12 +291,16 @@ async function loadMyTrades() {
 
 function listenToIncomingTrades(callback) {
     if (!multiplayerCurrentUser || !db) return () => {};
+    // Only filter by toUid to avoid composite index requirement
+    // Filter status client-side
     return db.collection('tradeOffers')
-        .where('toUid','==',multiplayerCurrentUser.uid)
-        .where('status','==','pending')
+        .where('toUid', '==', multiplayerCurrentUser.uid)
         .onSnapshot(snap => {
             const trades = [];
-            snap.forEach(doc => trades.push({ id: doc.id, ...doc.data() }));
+            snap.forEach(doc => {
+                const d = doc.data();
+                if (d.status === 'pending') trades.push({ id: doc.id, ...d });
+            });
             callback(trades);
         });
 }
