@@ -488,7 +488,7 @@ const AurababyMarket = () => {
             <div className="nav-tabs">
                 {[
                     ['market','🏪 Market'],
-                    ['limited','💎 Limiteds (300)'],
+                    ['limited','💎 Limiteds (440)'],
                     ['enhancers','🧪 Enhancers'],
                     ['portfolio','📊 Portfolio'],
                     ['profile','👤 Profile'],
@@ -590,7 +590,7 @@ const AurababyMarket = () => {
                         <h1 className="view-title">💎 Limited Store</h1>
                         <p className="view-subtitle">300 items! Limiteds can be traded with other players.</p>
                         <div className="tabs">
-                            {[['all','All (300)'],['divine','🌟 Divine (8)'],['legendary','Legendary'],['epic','Epic'],['rare','Rare'],['common','Common']].map(([f, l]) => (
+                            {[['all','All (440)'],['divine','🌟 Divine (8)'],['legendary','Legendary'],['epic','Epic'],['rare','Rare'],['common','Common']].map(([f, l]) => (
                                 <button key={f} onClick={() => setLimitedFilter(f)} className={`tab-button ${limitedFilter === f ? 'active' : ''}`}>{l}</button>
                             ))}
                         </div>
