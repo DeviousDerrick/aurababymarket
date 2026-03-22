@@ -1,7 +1,7 @@
 // 300 LIMITED ITEMS - Organized by Rarity
 const LIMITEDS = [
     // ========================================
-    // DIVINE TIER (8 items) - Price: $4,600 - $5,500 | Value: $2,500 - $10,000
+    // DIVINE TIER (8 items)
     // ========================================
     { id: 'godmode', name: 'God Mode', emoji: '🔱', cost: 5000, minValue: 3000, maxValue: 10000, rarity: 'Divine' },
     { id: 'celestial', name: 'Celestial Crown', emoji: '👼', cost: 4800, minValue: 2800, maxValue: 9500, rarity: 'Divine' },
@@ -13,7 +13,18 @@ const LIMITEDS = [
     { id: 'olympus', name: 'Mount Olympus', emoji: '⛰️', cost: 5500, minValue: 3500, maxValue: 10000, rarity: 'Divine' },
 
     // ========================================
-    // LEGENDARY TIER (40 items) - Price: $2,200 - $3,500 | Value: $1,000 - $7,000
+    // 7 NEW DIVINE TIER
+    // ========================================
+    { id: 'nebula', name: 'Nebula Storm', emoji: '🌌', cost: 55000, minValue: 40000, maxValue: 110000, rarity: 'Divine' },
+    { id: 'void_eye', name: 'Void Eye', emoji: '👁️', cost: 52000, minValue: 38000, maxValue: 105000, rarity: 'Divine' },
+    { id: 'suncore', name: 'Solar Core', emoji: '☀️', cost: 48000, minValue: 35000, maxValue: 100000, rarity: 'Divine' },
+    { id: 'rift', name: 'Dimensional Rift', emoji: '🌀', cost: 60000, minValue: 45000, maxValue: 120000, rarity: 'Divine' },
+    { id: 'dragonheart', name: 'Dragon Heart', emoji: '🐲', cost: 58000, minValue: 42000, maxValue: 115000, rarity: 'Divine' },
+    { id: 'abyssal_throne', name: 'Abyssal Throne', emoji: '🪑', cost: 50000, minValue: 36000, maxValue: 108000, rarity: 'Divine' },
+    { id: 'starforge', name: 'Star Forge', emoji: '⭐', cost: 65000, minValue: 48000, maxValue: 130000, rarity: 'Divine' },
+
+    // ========================================
+    // LEGENDARY TIER (40 original items)
     // ========================================
     { id: 'dragon', name: 'Dragon Power', emoji: '🐉', cost: 3500, minValue: 1500, maxValue: 7000, rarity: 'Legendary' },
     { id: 'phoenix', name: 'Phoenix Rising', emoji: '🦅', cost: 3300, minValue: 1400, maxValue: 6500, rarity: 'Legendary' },
@@ -56,8 +67,35 @@ const LIMITEDS = [
     { id: 'metaverse', name: 'Metaverse Land', emoji: '🌐', cost: 2800, minValue: 1100, maxValue: 5500, rarity: 'Legendary' },
     { id: 'quantum', name: 'Quantum Computer', emoji: '⚛️', cost: 3100, minValue: 1200, maxValue: 6200, rarity: 'Legendary' },
 
+    // 25 NEW LEGENDARY
+    { id: 'phoenix_ash', name: 'Phoenix Ash', emoji: '🔥', cost: 3200, minValue: 1400, maxValue: 6400, rarity: 'Legendary' },
+    { id: 'kraken_ink', name: 'Kraken Ink', emoji: '🐙', cost: 2900, minValue: 1200, maxValue: 5800, rarity: 'Legendary' },
+    { id: 'titan_core2', name: 'Titan Core', emoji: '⚙️', cost: 3400, minValue: 1500, maxValue: 6800, rarity: 'Legendary' },
+    { id: 'moonstone2', name: 'Moonstone', emoji: '🌙', cost: 2800, minValue: 1100, maxValue: 5600, rarity: 'Legendary' },
+    { id: 'stardust2', name: 'Stardust Vial', emoji: '✨', cost: 3100, minValue: 1300, maxValue: 6200, rarity: 'Legendary' },
+    { id: 'vortex_crystal', name: 'Vortex Crystal', emoji: '🌀', cost: 3300, minValue: 1400, maxValue: 6600, rarity: 'Legendary' },
+    { id: 'golem_heart', name: 'Golem Heart', emoji: '💚', cost: 2900, minValue: 1200, maxValue: 5800, rarity: 'Legendary' },
+    { id: 'lava_gem2', name: 'Lava Gem', emoji: '🌋', cost: 3500, minValue: 1500, maxValue: 7000, rarity: 'Legendary' },
+    { id: 'frostbite_core', name: 'Frostbite Core', emoji: '🧊', cost: 2700, minValue: 1100, maxValue: 5400, rarity: 'Legendary' },
+    { id: 'thunder_egg', name: 'Thunder Egg', emoji: '⚡', cost: 3000, minValue: 1250, maxValue: 6000, rarity: 'Legendary' },
+    { id: 'sea_king_crown', name: 'Sea King Crown', emoji: '🦑', cost: 3200, minValue: 1350, maxValue: 6400, rarity: 'Legendary' },
+    { id: 'cursed_coin', name: 'Cursed Coin', emoji: '🪙', cost: 2800, minValue: 1150, maxValue: 5600, rarity: 'Legendary' },
+    { id: 'solar_blade', name: 'Solar Blade', emoji: '🗡️', cost: 3400, minValue: 1450, maxValue: 6800, rarity: 'Legendary' },
+    { id: 'spirit_orb2', name: 'Spirit Orb', emoji: '🔵', cost: 2600, minValue: 1050, maxValue: 5200, rarity: 'Legendary' },
+    { id: 'rune_tablet', name: 'Rune Tablet', emoji: '📜', cost: 3000, minValue: 1250, maxValue: 6000, rarity: 'Legendary' },
+    { id: 'wolf_fang', name: 'Wolf Fang', emoji: '🐺', cost: 2900, minValue: 1200, maxValue: 5800, rarity: 'Legendary' },
+    { id: 'sky_shard', name: 'Sky Shard', emoji: '☁️', cost: 3100, minValue: 1300, maxValue: 6200, rarity: 'Legendary' },
+    { id: 'deep_pearl', name: 'Deep Pearl', emoji: '🤍', cost: 2800, minValue: 1150, maxValue: 5600, rarity: 'Legendary' },
+    { id: 'shadow_gem2', name: 'Shadow Gem', emoji: '🖤', cost: 3300, minValue: 1400, maxValue: 6600, rarity: 'Legendary' },
+    { id: 'blazing_orb', name: 'Blazing Orb', emoji: '🔴', cost: 3200, minValue: 1350, maxValue: 6400, rarity: 'Legendary' },
+    { id: 'cosmic_shard', name: 'Cosmic Shard', emoji: '💫', cost: 3600, minValue: 1600, maxValue: 7200, rarity: 'Legendary' },
+    { id: 'frozen_throne', name: 'Frozen Throne', emoji: '🏔️', cost: 3400, minValue: 1450, maxValue: 6800, rarity: 'Legendary' },
+    { id: 'mythic_feather', name: 'Mythic Feather', emoji: '🪶', cost: 2700, minValue: 1100, maxValue: 5400, rarity: 'Legendary' },
+    { id: 'gilded_skull', name: 'Gilded Skull', emoji: '💀', cost: 3100, minValue: 1300, maxValue: 6200, rarity: 'Legendary' },
+    { id: 'eternal_rose', name: 'Eternal Rose', emoji: '🌹', cost: 2900, minValue: 1200, maxValue: 5800, rarity: 'Legendary' },
+
     // ========================================
-    // EPIC TIER (60 items) - Price: $1,500 - $2,200 | Value: $500 - $4,500
+    // EPIC TIER (60 original items)
     // ========================================
     { id: 'unicorn', name: 'Unicorn Spirit', emoji: '🦄', cost: 2200, minValue: 800, maxValue: 4400, rarity: 'Epic' },
     { id: 'lightning', name: 'Lightning Power', emoji: '⚡', cost: 1800, minValue: 600, maxValue: 3600, rarity: 'Epic' },
@@ -119,8 +157,45 @@ const LIMITEDS = [
     { id: 'pendant', name: 'Crystal Pendant', emoji: '💎', cost: 1800, minValue: 1300, maxValue: 3000, rarity: 'Epic' },
     { id: 'locket', name: 'Golden Locket', emoji: '📿', cost: 1600, minValue: 1100, maxValue: 2700, rarity: 'Epic' },
 
+    // 35 NEW EPIC
+    { id: 'storm_eye2', name: 'Storm Eye', emoji: '⛈️', cost: 2100, minValue: 750, maxValue: 4200, rarity: 'Epic' },
+    { id: 'lava_core2', name: 'Lava Core', emoji: '🌋', cost: 1900, minValue: 650, maxValue: 3800, rarity: 'Epic' },
+    { id: 'sea_glass', name: 'Sea Glass', emoji: '🌊', cost: 1700, minValue: 575, maxValue: 3400, rarity: 'Epic' },
+    { id: 'hex_rune', name: 'Hex Rune', emoji: '🔯', cost: 2000, minValue: 700, maxValue: 4000, rarity: 'Epic' },
+    { id: 'bone_king', name: 'Bone King', emoji: '🦴', cost: 1800, minValue: 620, maxValue: 3600, rarity: 'Epic' },
+    { id: 'thunder_fist', name: 'Thunder Fist', emoji: '👊', cost: 2200, minValue: 800, maxValue: 4400, rarity: 'Epic' },
+    { id: 'mirror_shard', name: 'Mirror Shard', emoji: '🪞', cost: 1900, minValue: 660, maxValue: 3800, rarity: 'Epic' },
+    { id: 'plague_mask', name: 'Plague Mask', emoji: '😷', cost: 2100, minValue: 740, maxValue: 4200, rarity: 'Epic' },
+    { id: 'moon_petal', name: 'Moon Petal', emoji: '🌸', cost: 1700, minValue: 580, maxValue: 3400, rarity: 'Epic' },
+    { id: 'ghost_lantern2', name: 'Ghost Lantern', emoji: '🏮', cost: 2000, minValue: 710, maxValue: 4000, rarity: 'Epic' },
+    { id: 'iron_crown', name: 'Iron Crown', emoji: '👑', cost: 2200, minValue: 790, maxValue: 4400, rarity: 'Epic' },
+    { id: 'blood_gem', name: 'Blood Gem', emoji: '❤️', cost: 1850, minValue: 640, maxValue: 3700, rarity: 'Epic' },
+    { id: 'sand_golem', name: 'Sand Golem', emoji: '🏜️', cost: 1950, minValue: 670, maxValue: 3900, rarity: 'Epic' },
+    { id: 'star_cape', name: 'Star Cape', emoji: '🌟', cost: 2050, minValue: 730, maxValue: 4100, rarity: 'Epic' },
+    { id: 'frost_wing', name: 'Frost Wing', emoji: '❄️', cost: 1750, minValue: 590, maxValue: 3500, rarity: 'Epic' },
+    { id: 'tide_trident', name: 'Tide Trident', emoji: '🔱', cost: 2150, minValue: 760, maxValue: 4300, rarity: 'Epic' },
+    { id: 'ember_core', name: 'Ember Core', emoji: '🔥', cost: 1900, minValue: 650, maxValue: 3800, rarity: 'Epic' },
+    { id: 'wisp_lantern', name: 'Wisp Lantern', emoji: '🕯️', cost: 1800, minValue: 620, maxValue: 3600, rarity: 'Epic' },
+    { id: 'plague_vial', name: 'Plague Vial', emoji: '🧪', cost: 2000, minValue: 700, maxValue: 4000, rarity: 'Epic' },
+    { id: 'arc_wand', name: 'Arc Wand', emoji: '🪄', cost: 2200, minValue: 800, maxValue: 4400, rarity: 'Epic' },
+    { id: 'siren_scale', name: 'Siren Scale', emoji: '🧜', cost: 2100, minValue: 750, maxValue: 4200, rarity: 'Epic' },
+    { id: 'raven_claw', name: 'Raven Claw', emoji: '🦅', cost: 1750, minValue: 595, maxValue: 3500, rarity: 'Epic' },
+    { id: 'ash_ring', name: 'Ash Ring', emoji: '💍', cost: 1950, minValue: 670, maxValue: 3900, rarity: 'Epic' },
+    { id: 'nether_gem', name: 'Nether Gem', emoji: '💠', cost: 2150, minValue: 770, maxValue: 4300, rarity: 'Epic' },
+    { id: 'titan_shield2', name: 'Titan Shield', emoji: '🛡️', cost: 2000, minValue: 710, maxValue: 4000, rarity: 'Epic' },
+    { id: 'void_blade', name: 'Void Blade', emoji: '⚔️', cost: 2200, minValue: 800, maxValue: 4400, rarity: 'Epic' },
+    { id: 'comet_stone', name: 'Comet Stone', emoji: '☄️', cost: 1800, minValue: 620, maxValue: 3600, rarity: 'Epic' },
+    { id: 'hex_crown', name: 'Hex Crown', emoji: '👑', cost: 1900, minValue: 660, maxValue: 3800, rarity: 'Epic' },
+    { id: 'dusk_mantle', name: 'Dusk Mantle', emoji: '🌒', cost: 2050, minValue: 725, maxValue: 4100, rarity: 'Epic' },
+    { id: 'forge_heart', name: 'Forge Heart', emoji: '⚙️', cost: 2100, minValue: 745, maxValue: 4200, rarity: 'Epic' },
+    { id: 'chaos_pearl', name: 'Chaos Pearl', emoji: '🤍', cost: 1850, minValue: 640, maxValue: 3700, rarity: 'Epic' },
+    { id: 'solar_rune2', name: 'Solar Rune', emoji: '🌞', cost: 2200, minValue: 800, maxValue: 4400, rarity: 'Epic' },
+    { id: 'moss_crown', name: 'Moss Crown', emoji: '🌿', cost: 1700, minValue: 575, maxValue: 3400, rarity: 'Epic' },
+    { id: 'viper_fang', name: 'Viper Fang', emoji: '🐍', cost: 1950, minValue: 675, maxValue: 3900, rarity: 'Epic' },
+    { id: 'dark_veil', name: 'Dark Veil', emoji: '😈', cost: 2100, minValue: 750, maxValue: 4200, rarity: 'Epic' },
+
     // ========================================
-    // RARE TIER (90 items) - Price: $900 - $1,600 | Value: $200 - $3,000
+    // RARE TIER (90 original items)
     // ========================================
     { id: 'lion', name: 'Lion King', emoji: '🦁', cost: 1000, minValue: 250, maxValue: 2000, rarity: 'Rare' },
     { id: 'crown', name: 'Crown Aura', emoji: '👑', cost: 1000, minValue: 250, maxValue: 2000, rarity: 'Rare' },
@@ -210,8 +285,55 @@ const LIMITEDS = [
     { id: 'sculpture', name: 'Stone Sculpture', emoji: '🗿', cost: 1400, minValue: 1000, maxValue: 2300, rarity: 'Rare' },
     { id: 'statue', name: 'Bronze Statue', emoji: '🗽', cost: 1500, minValue: 1000, maxValue: 2500, rarity: 'Rare' },
 
+    // 45 NEW RARE
+    { id: 'fox_tail', name: 'Fox Tail', emoji: '🦊', cost: 1300, minValue: 900, maxValue: 2200, rarity: 'Rare' },
+    { id: 'owl_eye', name: 'Owl Eye', emoji: '🦉', cost: 1400, minValue: 950, maxValue: 2400, rarity: 'Rare' },
+    { id: 'bat_wing', name: 'Bat Wing', emoji: '🦇', cost: 1000, minValue: 650, maxValue: 1700, rarity: 'Rare' },
+    { id: 'coral_piece', name: 'Coral Piece', emoji: '🪸', cost: 1250, minValue: 850, maxValue: 2100, rarity: 'Rare' },
+    { id: 'moon_shell', name: 'Moon Shell', emoji: '🐚', cost: 1100, minValue: 720, maxValue: 1850, rarity: 'Rare' },
+    { id: 'feather_pen', name: 'Feather Pen', emoji: '🪶', cost: 1150, minValue: 750, maxValue: 1950, rarity: 'Rare' },
+    { id: 'old_lantern', name: 'Old Lantern', emoji: '🏮', cost: 1300, minValue: 880, maxValue: 2200, rarity: 'Rare' },
+    { id: 'clay_pot', name: 'Clay Pot', emoji: '🏺', cost: 1050, minValue: 680, maxValue: 1750, rarity: 'Rare' },
+    { id: 'meteor_chunk', name: 'Meteor Chunk', emoji: '🌠', cost: 1500, minValue: 1000, maxValue: 2500, rarity: 'Rare' },
+    { id: 'tide_pearl', name: 'Tide Pearl', emoji: '🫧', cost: 1000, minValue: 650, maxValue: 1700, rarity: 'Rare' },
+    { id: 'violet_gem2', name: 'Violet Gem', emoji: '💜', cost: 1400, minValue: 960, maxValue: 2350, rarity: 'Rare' },
+    { id: 'dagger_shard', name: 'Dagger Shard', emoji: '🗡️', cost: 1300, minValue: 880, maxValue: 2200, rarity: 'Rare' },
+    { id: 'storm_bottle', name: 'Storm Bottle', emoji: '🌩️', cost: 1100, minValue: 720, maxValue: 1850, rarity: 'Rare' },
+    { id: 'spider_silk', name: 'Spider Silk', emoji: '🕷️', cost: 1200, minValue: 800, maxValue: 2000, rarity: 'Rare' },
+    { id: 'glass_eye2', name: 'Glass Eye', emoji: '👁️', cost: 1350, minValue: 920, maxValue: 2300, rarity: 'Rare' },
+    { id: 'amber_drop', name: 'Amber Drop', emoji: '🟠', cost: 1150, minValue: 750, maxValue: 1950, rarity: 'Rare' },
+    { id: 'crystal_vial', name: 'Crystal Vial', emoji: '🧪', cost: 1300, minValue: 880, maxValue: 2200, rarity: 'Rare' },
+    { id: 'shadow_cloth', name: 'Shadow Cloth', emoji: '🧣', cost: 1100, minValue: 720, maxValue: 1850, rarity: 'Rare' },
+    { id: 'cactus_spine', name: 'Cactus Spine', emoji: '🌵', cost: 950, minValue: 625, maxValue: 1600, rarity: 'Rare' },
+    { id: 'cloud_cotton', name: 'Cloud Cotton', emoji: '☁️', cost: 1200, minValue: 820, maxValue: 2000, rarity: 'Rare' },
+    { id: 'sun_petal', name: 'Sun Petal', emoji: '🌻', cost: 1100, minValue: 720, maxValue: 1850, rarity: 'Rare' },
+    { id: 'lava_stone', name: 'Lava Stone', emoji: '🌋', cost: 1400, minValue: 960, maxValue: 2350, rarity: 'Rare' },
+    { id: 'night_bloom', name: 'Night Bloom', emoji: '🌺', cost: 1050, minValue: 690, maxValue: 1750, rarity: 'Rare' },
+    { id: 'thorn_ring', name: 'Thorn Ring', emoji: '🌹', cost: 1300, minValue: 880, maxValue: 2200, rarity: 'Rare' },
+    { id: 'dew_drop', name: 'Dew Drop', emoji: '💧', cost: 950, minValue: 625, maxValue: 1600, rarity: 'Rare' },
+    { id: 'silver_leaf', name: 'Silver Leaf', emoji: '🍃', cost: 1200, minValue: 800, maxValue: 2000, rarity: 'Rare' },
+    { id: 'ember_shard2', name: 'Ember Shard', emoji: '🔴', cost: 1350, minValue: 920, maxValue: 2300, rarity: 'Rare' },
+    { id: 'wisp_core', name: 'Wisp Core', emoji: '💫', cost: 1150, minValue: 750, maxValue: 1950, rarity: 'Rare' },
+    { id: 'storm_shard', name: 'Storm Shard', emoji: '⚡', cost: 1400, minValue: 950, maxValue: 2400, rarity: 'Rare' },
+    { id: 'rift_pebble', name: 'Rift Pebble', emoji: '🌀', cost: 1100, minValue: 720, maxValue: 1850, rarity: 'Rare' },
+    { id: 'snow_crystal', name: 'Snow Crystal', emoji: '❄️', cost: 1250, minValue: 850, maxValue: 2100, rarity: 'Rare' },
+    { id: 'sand_grain', name: 'Desert Sand', emoji: '🏜️', cost: 900, minValue: 600, maxValue: 1500, rarity: 'Rare' },
+    { id: 'pine_resin', name: 'Pine Resin', emoji: '🌲', cost: 900, minValue: 600, maxValue: 1500, rarity: 'Rare' },
+    { id: 'river_stone', name: 'River Stone', emoji: '💎', cost: 1000, minValue: 650, maxValue: 1700, rarity: 'Rare' },
+    { id: 'iron_spike', name: 'Iron Spike', emoji: '📌', cost: 900, minValue: 600, maxValue: 1500, rarity: 'Rare' },
+    { id: 'oak_acorn2', name: 'Oak Acorn', emoji: '🌰', cost: 900, minValue: 600, maxValue: 1500, rarity: 'Rare' },
+    { id: 'bee_stinger', name: 'Bee Stinger', emoji: '🐝', cost: 950, minValue: 625, maxValue: 1600, rarity: 'Rare' },
+    { id: 'rusty_key2', name: 'Rusty Key', emoji: '🔑', cost: 1200, minValue: 800, maxValue: 2000, rarity: 'Rare' },
+    { id: 'crab_claw', name: 'Crab Claw', emoji: '🦀', cost: 1100, minValue: 700, maxValue: 1850, rarity: 'Rare' },
+    { id: 'fog_crystal', name: 'Fog Crystal', emoji: '🌫️', cost: 1200, minValue: 820, maxValue: 2000, rarity: 'Rare' },
+    { id: 'mushroom2', name: 'Wild Mushroom', emoji: '🍄', cost: 1050, minValue: 680, maxValue: 1750, rarity: 'Rare' },
+    { id: 'bone_dice', name: 'Bone Dice', emoji: '🎲', cost: 1300, minValue: 880, maxValue: 2200, rarity: 'Rare' },
+    { id: 'wax_seal', name: 'Wax Seal', emoji: '🔴', cost: 950, minValue: 625, maxValue: 1600, rarity: 'Rare' },
+    { id: 'tidal_shell', name: 'Tidal Shell', emoji: '🐚', cost: 1050, minValue: 700, maxValue: 1750, rarity: 'Rare' },
+    { id: 'lemon_drop', name: 'Lemon Drop', emoji: '🍋', cost: 900, minValue: 600, maxValue: 1500, rarity: 'Rare' },
+
     // ========================================
-    // COMMON TIER (102 items) - Price: $500 - $1,000 | Value: $100 - $2,000
+    // COMMON TIER (102 original items)
     // ========================================
     { id: 'cat', name: 'Lucky Cat', emoji: '🐱', cost: 500, minValue: 100, maxValue: 1000, rarity: 'Common' },
     { id: 'dog', name: 'Diamond Dog', emoji: '🐶', cost: 600, minValue: 125, maxValue: 1200, rarity: 'Common' },
@@ -308,10 +430,47 @@ const LIMITEDS = [
     { id: 'coffee', name: 'Hot Coffee', emoji: '☕', cost: 900, minValue: 600, maxValue: 1500, rarity: 'Common' },
     { id: 'tea', name: 'Green Tea', emoji: '🍵', cost: 850, minValue: 550, maxValue: 1400, rarity: 'Common' },
     { id: 'juice', name: 'Orange Juice', emoji: '🧃', cost: 700, minValue: 450, maxValue: 1200, rarity: 'Common' },
-    { id: 'soda', name: 'Fizzy Soda', emoji: '🥤', cost: 650, minValue: 400, maxValue: 1100, rarity: 'Common' }
+    { id: 'soda', name: 'Fizzy Soda', emoji: '🥤', cost: 650, minValue: 400, maxValue: 1100, rarity: 'Common' },
+
+    // 38 NEW COMMON
+    { id: 'blueberry', name: 'Blueberry', emoji: '🫐', cost: 550, minValue: 115, maxValue: 1100, rarity: 'Common' },
+    { id: 'lollipop', name: 'Lollipop', emoji: '🍭', cost: 650, minValue: 140, maxValue: 1300, rarity: 'Common' },
+    { id: 'hotdog', name: 'Hot Dog', emoji: '🌭', cost: 700, minValue: 150, maxValue: 1400, rarity: 'Common' },
+    { id: 'taco2', name: 'Taco', emoji: '🌮', cost: 750, minValue: 160, maxValue: 1500, rarity: 'Common' },
+    { id: 'ramen', name: 'Ramen Bowl', emoji: '🍜', cost: 800, minValue: 175, maxValue: 1600, rarity: 'Common' },
+    { id: 'dumpling', name: 'Dumpling', emoji: '🥟', cost: 650, minValue: 140, maxValue: 1300, rarity: 'Common' },
+    { id: 'popcorn2', name: 'Popcorn', emoji: '🍿', cost: 600, minValue: 125, maxValue: 1200, rarity: 'Common' },
+    { id: 'boba', name: 'Boba Tea', emoji: '🧋', cost: 750, minValue: 160, maxValue: 1500, rarity: 'Common' },
+    { id: 'cupcake', name: 'Cupcake', emoji: '🧁', cost: 700, minValue: 150, maxValue: 1400, rarity: 'Common' },
+    { id: 'lemon2', name: 'Lemon', emoji: '🍋', cost: 550, minValue: 115, maxValue: 1100, rarity: 'Common' },
+    { id: 'tangerine2', name: 'Tangerine', emoji: '🍊', cost: 600, minValue: 125, maxValue: 1200, rarity: 'Common' },
+    { id: 'seashell2', name: 'Seashell', emoji: '🐚', cost: 700, minValue: 150, maxValue: 1400, rarity: 'Common' },
+    { id: 'starfish', name: 'Starfish', emoji: '⭐', cost: 750, minValue: 160, maxValue: 1500, rarity: 'Common' },
+    { id: 'butterfly', name: 'Butterfly', emoji: '🦋', cost: 900, minValue: 200, maxValue: 1800, rarity: 'Common' },
+    { id: 'firefly', name: 'Firefly', emoji: '✨', cost: 850, minValue: 185, maxValue: 1700, rarity: 'Common' },
+    { id: 'ladybug', name: 'Ladybug', emoji: '🐞', cost: 600, minValue: 125, maxValue: 1200, rarity: 'Common' },
+    { id: 'snail', name: 'Snail', emoji: '🐌', cost: 550, minValue: 115, maxValue: 1100, rarity: 'Common' },
+    { id: 'duckling', name: 'Duckling', emoji: '🐥', cost: 700, minValue: 150, maxValue: 1400, rarity: 'Common' },
+    { id: 'chick', name: 'Baby Chick', emoji: '🐤', cost: 600, minValue: 125, maxValue: 1200, rarity: 'Common' },
+    { id: 'penguin2', name: 'Penguin', emoji: '🐧', cost: 800, minValue: 175, maxValue: 1600, rarity: 'Common' },
+    { id: 'koala', name: 'Koala', emoji: '🐨', cost: 850, minValue: 185, maxValue: 1700, rarity: 'Common' },
+    { id: 'sloth', name: 'Sloth', emoji: '🦥', cost: 900, minValue: 200, maxValue: 1800, rarity: 'Common' },
+    { id: 'hedgehog', name: 'Hedgehog', emoji: '🦔', cost: 750, minValue: 160, maxValue: 1500, rarity: 'Common' },
+    { id: 'capybara', name: 'Capybara', emoji: '🐀', cost: 700, minValue: 150, maxValue: 1400, rarity: 'Common' },
+    { id: 'axolotl', name: 'Axolotl', emoji: '🐟', cost: 950, minValue: 225, maxValue: 1900, rarity: 'Common' },
+    { id: 'jellyfish', name: 'Jellyfish', emoji: '🪼', cost: 850, minValue: 185, maxValue: 1700, rarity: 'Common' },
+    { id: 'shrimp', name: 'Shrimp', emoji: '🦐', cost: 550, minValue: 115, maxValue: 1100, rarity: 'Common' },
+    { id: 'narwhal', name: 'Narwhal', emoji: '🐳', cost: 900, minValue: 200, maxValue: 1800, rarity: 'Common' },
+    { id: 'dino', name: 'Mini Dino', emoji: '🦕', cost: 950, minValue: 225, maxValue: 1900, rarity: 'Common' },
+    { id: 'trex', name: 'T-Rex', emoji: '🦖', cost: 1000, minValue: 250, maxValue: 2000, rarity: 'Common' },
+    { id: 'mammoth', name: 'Mammoth', emoji: '🐘', cost: 850, minValue: 185, maxValue: 1700, rarity: 'Common' },
+    { id: 'flamingo', name: 'Flamingo', emoji: '🦩', cost: 900, minValue: 200, maxValue: 1800, rarity: 'Common' },
+    { id: 'cactus2', name: 'Mini Cactus', emoji: '🌵', cost: 650, minValue: 140, maxValue: 1300, rarity: 'Common' },
+    { id: 'firecracker', name: 'Firecracker', emoji: '🧨', cost: 700, minValue: 150, maxValue: 1400, rarity: 'Common' },
+    { id: 'pretzel2', name: 'Pretzel Twist', emoji: '🥨', cost: 600, minValue: 125, maxValue: 1200, rarity: 'Common' },
+    { id: 'bagel2', name: 'Everything Bagel', emoji: '🥯', cost: 650, minValue: 140, maxValue: 1300, rarity: 'Common' },
+    { id: 'waffle2', name: 'Belgian Waffle', emoji: '🧇', cost: 700, minValue: 150, maxValue: 1400, rarity: 'Common' },
+    { id: 'hotchoc', name: 'Hot Chocolate', emoji: '☕', cost: 800, minValue: 175, maxValue: 1600, rarity: 'Common' },
 ];
 
-// Export for use in HTML
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = LIMITEDS;
-}
+if (typeof module !== 'undefined' && module.exports) { module.exports = LIMITEDS; }
