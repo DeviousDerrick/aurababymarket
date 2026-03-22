@@ -228,6 +228,21 @@ async function updateLeaderboard(playerData) {
     } catch (error) { console.error('Leaderboard update failed:', error); }
 }
 
+function listenToLeaderboard(callback) {
+    if (!db) return () => {};
+    return db.collection('leaderboard')
+        .orderBy('netWorth', 'desc')
+        .limit(20)
+        .onSnapshot(snap => {
+            const leaders = [];
+            snap.forEach(doc => leaders.push({
+                id: doc.id, ...doc.data(),
+                isCurrentUser: multiplayerCurrentUser && doc.id === multiplayerCurrentUser.uid
+            }));
+            callback(leaders);
+        });
+}
+
 async function loadLeaderboard() {
     if (!db) return [];
     try {
@@ -463,6 +478,7 @@ window.multiplayer = {
     initializeGlobalPrices, forceUpdateGlobalPrices, listenToGlobalPrices,
     updateLeaderboard, loadLeaderboard, loadAllPlayers, loadPlayerInventory,
     sendTradeOffer, loadMyTrades, listenToIncomingTrades, acceptTrade, declineTrade,
+    listenToLeaderboard,
     awardMonthlyMedals
 };
 
