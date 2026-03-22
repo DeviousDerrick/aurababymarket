@@ -825,6 +825,53 @@ const AurababyMarket = () => {
                                 });
                             })}
                         </div>
+
+                        {/* ── ENHANCERS ── */}
+                        {Object.values(enhancerInventory).reduce((acc,n)=>acc+n,0) > 0 && (
+                            <>
+                                <h2 style={{marginTop:'40px',marginBottom:'20px',fontSize:'28px',fontWeight:'800',color:'#2c3e50'}}>🧪 Your Enhancers</h2>
+                                <p style={{color:'#7f8c8d',marginBottom:'20px'}}>Enhancers can be applied to limiteds or traded with other players.</p>
+                                <div className="card-grid">
+                                    {allEnhancers.filter(e => (enhancerInventory[e.id]||0) > 0).map(enh => (
+                                        <div key={enh.id} style={{background:getEnhancerRarityBg(enh.rarity),borderRadius:'18px',padding:'18px',color:'white',position:'relative',boxShadow:'0 4px 15px rgba(0,0,0,0.15)'}}>
+                                            <div style={{position:'absolute',top:'12px',right:'12px',background:'rgba(0,0,0,0.3)',padding:'4px 10px',borderRadius:'12px',fontSize:'11px',fontWeight:'800'}}>{enh.rarity}</div>
+                                            <div style={{fontSize:'52px',textAlign:'center',marginBottom:'8px'}}>{enh.emoji}</div>
+                                            <h3 style={{textAlign:'center',fontSize:'15px',marginBottom:'6px',fontWeight:'800'}}>{enh.name}</h3>
+                                            <div style={{textAlign:'center',background:'rgba(0,0,0,0.25)',borderRadius:'20px',padding:'6px 12px',marginBottom:'8px',fontSize:'18px',fontWeight:'800'}}>+{enh.boost}% VALUE</div>
+                                            <div style={{textAlign:'center',background:'rgba(255,255,255,0.25)',borderRadius:'10px',padding:'7px',fontWeight:'800',fontSize:'16px'}}>Owned: {enhancerInventory[enh.id]}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        {/* ── GENERATORS ── */}
+                        {Object.values(generatorInventory).reduce((acc,n)=>acc+n,0) > 0 && (
+                            <>
+                                <h2 style={{marginTop:'40px',marginBottom:'10px',fontSize:'28px',fontWeight:'800',color:'#2c3e50'}}>⛏️ Your Generators</h2>
+                                {(() => {
+                                    const {min,max} = getTotalGeneratorIncome();
+                                    return <div style={{background:'linear-gradient(135deg,#27ae60,#229954)',borderRadius:'12px',padding:'14px 20px',marginBottom:'20px',color:'white',fontWeight:'700',fontSize:'15px'}}>💰 Total passive income: <strong>${min.toLocaleString()}–${max.toLocaleString()}</strong> every 2 minutes</div>;
+                                })()}
+                                <div className="card-grid">
+                                    {allGenerators.filter(g => (generatorInventory[g.id]||0) > 0).map(gen => {
+                                        const owned = generatorInventory[gen.id]||0;
+                                        return (
+                                            <div key={gen.id} style={{background:getGeneratorRarityBg(gen.rarity),borderRadius:'18px',padding:'18px',color:'white',position:'relative',boxShadow:gen.rarity==='Divine'?'0 0 25px rgba(255,0,255,0.5)':'0 4px 15px rgba(0,0,0,0.15)',animation:gen.rarity==='Divine'?'divine-glow 3s ease-in-out infinite':'none'}}>
+                                                <div style={{position:'absolute',top:'12px',right:'12px',background:'rgba(0,0,0,0.3)',padding:'4px 10px',borderRadius:'12px',fontSize:'11px',fontWeight:'800'}}>{gen.rarity}</div>
+                                                <div style={{fontSize:'52px',textAlign:'center',marginBottom:'8px'}}>{gen.emoji}</div>
+                                                <h3 style={{textAlign:'center',fontSize:'15px',marginBottom:'8px',fontWeight:'800'}}>{gen.name}</h3>
+                                                <div style={{background:'rgba(0,0,0,0.25)',borderRadius:'12px',padding:'8px',marginBottom:'8px',textAlign:'center'}}>
+                                                    <div style={{fontSize:'12px',opacity:0.85}}>Per 2 min (×{owned}):</div>
+                                                    <div style={{fontSize:'20px',fontWeight:'800'}}>${(gen.incomeMin*owned).toLocaleString()}–${(gen.incomeMax*owned).toLocaleString()}</div>
+                                                </div>
+                                                <div style={{textAlign:'center',background:'rgba(255,255,255,0.25)',borderRadius:'10px',padding:'7px',fontWeight:'800',fontSize:'16px'}}>Owned: {owned}</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
 
