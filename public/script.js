@@ -179,8 +179,13 @@ const AurababyMarket = () => {
         return () => unsub();
     }, []);
 
+    // Real-time leaderboard listener - always on
     useEffect(() => {
-        if (currentView === 'leaderboard') window.multiplayer.loadLeaderboard().then(setLeaderboard);
+        const unsub = window.multiplayer.listenToLeaderboard(setLeaderboard);
+        return () => unsub();
+    }, []);
+
+    useEffect(() => {
         if (currentView === 'trade') {
             window.multiplayer.loadAllPlayers().then(setAllPlayers);
             window.multiplayer.loadMyTrades().then(({ sent }) => setSentTrades(sent));
@@ -227,6 +232,7 @@ const AurababyMarket = () => {
             setMoney(nm); setPortfolio(np); setTradeHistory(nh);
             window.gameState.money = nm; window.gameState.portfolio = np; window.gameState.tradeHistory = nh;
             saveGameData();
+            window.multiplayer.updateLeaderboard({ username, money: nm, portfolioValue: getPortfolioValue(), limitedValue: getLimitedValue(), portfolio: np, limitedInventory, tradeHistory: nh });
         }
     };
 
@@ -241,6 +247,7 @@ const AurababyMarket = () => {
             setMoney(nm); setLimitedInventory(ni); setTradeHistory(nh);
             window.gameState.money = nm; window.gameState.limitedInventory = ni; window.gameState.tradeHistory = nh;
             saveGameData();
+            window.multiplayer.updateLeaderboard({ username, money: nm, portfolioValue: getPortfolioValue(), limitedValue: getLimitedValue(), portfolio, limitedInventory: ni, tradeHistory: nh });
         }
     };
 
@@ -269,6 +276,7 @@ const AurababyMarket = () => {
         window.gameState.money = nm;
         window.gameState.enhancerInventory = nEI;
         saveGameData();
+        window.multiplayer.updateLeaderboard({ username, money: nm, portfolioValue: getPortfolioValue(), limitedValue: getLimitedValue(), portfolio, limitedInventory, tradeHistory });
     };
 
     const applyEnhancer = (itemId, itemSerial, enhancerId) => {
@@ -980,7 +988,7 @@ const AurababyMarket = () => {
                                 <h1 className="view-title" style={{marginBottom:'4px'}}>🏆 Global Leaderboard</h1>
                                 <p className="view-subtitle" style={{marginBottom:0}}>Top players by net worth · 🏅 Medals awarded to top 3 on the 15th of each month</p>
                             </div>
-                            <button onClick={() => window.multiplayer.loadLeaderboard().then(setLeaderboard)} className="btn btn-primary" style={{padding:'10px 20px',fontSize:'14px'}}>🔄 Refresh</button>
+                            <div style={{fontSize:'13px',color:'#27ae60',fontWeight:'700',background:'rgba(39,174,96,0.1)',padding:'8px 16px',borderRadius:'20px'}}>🟢 Live</div>
                         </div>
 
                         {/* Medal countdown */}
