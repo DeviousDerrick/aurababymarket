@@ -227,6 +227,8 @@ const AurababyMarket = () => {
         if (currentView === 'trade') {
             window.multiplayer.loadAllPlayers().then(setAllPlayers);
             window.multiplayer.loadMyTrades().then(({ sent }) => setSentTrades(sent));
+            // Also do a one-time fetch of incoming trades in case the listener missed offline ones
+            window.multiplayer.fetchIncomingTrades().then(setIncomingTrades);
         }
     }, [currentView]);
 
@@ -1066,7 +1068,10 @@ const AurababyMarket = () => {
                         {/* INCOMING */}
                         {tradeTab === 'incoming' && (
                             <div>
-                                <h3 style={{fontSize:'22px',fontWeight:'800',marginBottom:'20px'}}>📥 Incoming Trade Offers</h3>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
+                                    <h3 style={{fontSize:'22px',fontWeight:'800',margin:0}}>📥 Incoming Trade Offers</h3>
+                                    <button onClick={() => window.multiplayer.fetchIncomingTrades().then(setIncomingTrades)} className="btn btn-primary" style={{padding:'10px 18px',fontSize:'14px'}}>🔄 Refresh</button>
+                                </div>
                                 {incomingTrades.length === 0 ? (
                                     <div style={{textAlign:'center',padding:'60px',background:'white',borderRadius:'20px'}}>
                                         <h3 style={{color:'#7f8c8d'}}>No pending offers</h3>
