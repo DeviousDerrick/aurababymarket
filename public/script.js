@@ -449,7 +449,7 @@ const AurababyMarket = () => {
         const list = side === 'offer' ? myOffer : theirRequest;
         const existing = list.find(x => x.type === type && x.id === item.id);
         if (list.length >= 6 && !existing) { alert('Max 6 items per side!'); setAddingSlot(null); return; }
-        const emoji = (type === 'limited' || type === 'enhancer') ? item.emoji : '👶';
+        const emoji = (type === 'limited' || type === 'enhancer' || type === 'generator') ? item.emoji : '👶';
         const extra = type === 'enhancer' ? { boost: item.boost, rarity: item.rarity } : {};
         const slot = { type, id: item.id, name: item.name, emoji, quantity, ...extra };
         if (side === 'offer') {
@@ -481,6 +481,7 @@ const AurababyMarket = () => {
             if (slot.type === 'baby' && (portfolio[slot.id] || 0) < slot.quantity) { alert(`You don't have ${slot.quantity}x ${slot.name}`); return; }
             if (slot.type === 'limited' && (limitedInventory[slot.id]?.length || 0) < slot.quantity) { alert(`You don't have ${slot.quantity}x ${slot.name}`); return; }
             if (slot.type === 'enhancer' && (enhancerInventory[slot.id] || 0) < slot.quantity) { alert(`You don't have ${slot.quantity}x ${slot.name}`); return; }
+            if (slot.type === 'generator' && (generatorInventory[slot.id] || 0) < slot.quantity) { alert(`You don't have ${slot.quantity}x ${slot.name}`); return; }
         }
         const offerId = await window.multiplayer.sendTradeOffer(
             tradeTarget.id, tradeTarget.username, myOffer, theirRequest, moneyOffer, moneyRequest
@@ -1097,7 +1098,7 @@ const AurababyMarket = () => {
                                                     : trade.myOffer.map((slot, i) => (
                                                         <div key={i} style={tradeSlotStyle('green')}>
                                                             <span style={{fontSize:'20px'}}>{slot.emoji}</span>
-                                                            <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}</span>
+                                                            <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}{slot.type==='generator' ? ` ⛏️` : ''}</span>
                                                         </div>
                                                     ))}
                                             </div>
@@ -1115,7 +1116,7 @@ const AurababyMarket = () => {
                                                     : trade.theirRequest.map((slot, i) => (
                                                         <div key={i} style={tradeSlotStyle('red')}>
                                                             <span style={{fontSize:'20px'}}>{slot.emoji}</span>
-                                                            <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}</span>
+                                                            <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}{slot.type==='generator' ? ` ⛏️` : ''}</span>
                                                         </div>
                                                     ))}
                                             </div>
@@ -1149,7 +1150,7 @@ const AurababyMarket = () => {
                                                 {trade.myOffer.map((slot, i) => (
                                                     <div key={i} style={tradeSlotStyle('red')}>
                                                         <span style={{fontSize:'20px'}}>{slot.emoji}</span>
-                                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}</span>
+                                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}{slot.type==='generator' ? ` ⛏️` : ''}</span>
                                                     </div>
                                                 ))}
                                                 {trade.myOffer.length === 0 && <div style={{color:'#aaa',fontStyle:'italic'}}>Nothing</div>}
@@ -1160,7 +1161,7 @@ const AurababyMarket = () => {
                                                 {trade.theirRequest.map((slot, i) => (
                                                     <div key={i} style={tradeSlotStyle('green')}>
                                                         <span style={{fontSize:'20px'}}>{slot.emoji}</span>
-                                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}</span>
+                                                        <span style={{flex:1,marginLeft:'8px',fontWeight:'700',fontSize:'14px'}}>{slot.quantity > 1 ? `${slot.quantity}x ` : ''}{slot.name}{slot.boost ? ` (+${slot.boost}%)` : ''}{slot.type==='generator' ? ` ⛏️` : ''}</span>
                                                     </div>
                                                 ))}
                                                 {trade.theirRequest.length === 0 && <div style={{color:'#aaa',fontStyle:'italic'}}>Nothing</div>}
@@ -1418,6 +1419,31 @@ const AurababyMarket = () => {
                                             </div>
                                         </>
                                     ) : <p style={{color:'#999',fontSize:'13px',fontStyle:'italic'}}>No enhancers {addingSlot==='offer'?'owned':'available from '+tradeTarget.username}</p>;
+                                })()}
+
+                                {/* GENERATORS */}
+                                {(() => {
+                                    const src = addingSlot === 'offer'
+                                        ? allGenerators.filter(g => (generatorInventory[g.id]||0) > 0)
+                                        : allGenerators.filter(g => (tradeTargetData.generatorInventory?.[g.id]||0) > 0);
+                                    return src.length > 0 ? (
+                                        <>
+                                            <div style={{fontWeight:'800',color:'#e67e22',marginBottom:'8px',fontSize:'13px'}}>⛏️ Generators:</div>
+                                            <div style={{display:'flex',flexWrap:'wrap',gap:'8px',marginBottom:'8px'}}>
+                                                {src.map(gen => {
+                                                    const alreadyIn = (addingSlot==='offer' ? myOffer : theirRequest).find(x=>x.type==='generator'&&x.id===gen.id)?.quantity||0;
+                                                    const avail = addingSlot==='offer'
+                                                        ? (generatorInventory[gen.id]||0) - alreadyIn
+                                                        : (tradeTargetData.generatorInventory?.[gen.id]||0) - alreadyIn;
+                                                    if (avail <= 0) return null;
+                                                    return <QtyPickerItem key={gen.id} label={gen.name}
+                                                        sub={`$${gen.incomeMin}-$${gen.incomeMax}/2min · Has: ${avail}`}
+                                                        emoji={gen.emoji} max={avail}
+                                                        onAdd={qty => addTradeSlot(addingSlot,'generator',gen,qty)} />;
+                                                })}
+                                            </div>
+                                        </>
+                                    ) : <p style={{color:'#999',fontSize:'13px',fontStyle:'italic'}}>No generators {addingSlot==='offer'?'owned':'available from '+tradeTarget.username}</p>;
                                 })()}
                             </div>
                         )}
