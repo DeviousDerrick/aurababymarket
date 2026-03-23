@@ -330,9 +330,9 @@ async function loadMyTrades() {
 
 function listenToIncomingTrades(callback) {
     if (!multiplayerCurrentUser || !db) return () => {};
-    // Only filter by toUid to avoid composite index requirement
-    // Filter status client-side
-    return db.collection('tradeOffers')
+    // onSnapshot fires immediately with current data AND listens for changes
+    // This means offline trades show up the moment you open the app
+    const unsub = db.collection('tradeOffers')
         .where('toUid', '==', multiplayerCurrentUser.uid)
         .onSnapshot(snap => {
             const trades = [];
@@ -341,7 +341,38 @@ function listenToIncomingTrades(callback) {
                 if (d.status === 'pending') trades.push({ id: doc.id, ...d });
             });
             callback(trades);
+        }, err => {
+            console.error('listenToIncomingTrades error:', err);
+            // Fallback: one-time fetch if listener fails
+            db.collection('tradeOffers')
+                .where('toUid', '==', multiplayerCurrentUser.uid)
+                .get()
+                .then(snap => {
+                    const trades = [];
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        if (d.status === 'pending') trades.push({ id: doc.id, ...d });
+                    });
+                    callback(trades);
+                });
         });
+    return unsub;
+}
+
+// Also expose a one-time fetch for manual refresh
+async function fetchIncomingTrades() {
+    if (!multiplayerCurrentUser || !db) return [];
+    try {
+        const snap = await db.collection('tradeOffers')
+            .where('toUid', '==', multiplayerCurrentUser.uid)
+            .get();
+        const trades = [];
+        snap.forEach(doc => {
+            const d = doc.data();
+            if (d.status === 'pending') trades.push({ id: doc.id, ...d });
+        });
+        return trades;
+    } catch(e) { console.error('fetchIncomingTrades failed:', e); return []; }
 }
 
 async function acceptTrade(tradeId, tradeData) {
@@ -506,6 +537,7 @@ window.multiplayer = {
     updateLeaderboard, loadLeaderboard, loadAllPlayers, loadPlayerInventory,
     sendTradeOffer, loadMyTrades, listenToIncomingTrades, acceptTrade, declineTrade,
     listenToLeaderboard, forceUpdateGeneratorPrices,
+    fetchIncomingTrades,
     awardMonthlyMedals
 };
 
