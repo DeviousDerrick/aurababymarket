@@ -147,7 +147,7 @@ async function loadGameData() {
         let username = currentUserAuth.isAnonymous ? 'Guest_' + Date.now() : (currentUserAuth.email || '').split('@')[0] || 'Trader';
         if (doc.exists) {
             const data = doc.data();
-            window.gameState = { username: data.username || username, money: data.money !== undefined ? data.money : 1000, portfolio: data.portfolio || {}, limitedInventory: data.limitedInventory || {}, enhancerInventory: data.enhancerInventory || {}, medals: data.medals || [], nameTagsOwned: data.nameTagsOwned || 0, hasChangedName: data.hasChangedName || false, tradeHistory: data.tradeHistory || [], highestMoney: data.highestMoney || 1000, highestNetWorth: data.highestNetWorth || 1000, priceHistory: data.priceHistory || [], createdAt: data.createdAt || null };
+            window.gameState = { username: data.username || username, money: data.money !== undefined ? data.money : 1000, portfolio: data.portfolio || {}, limitedInventory: data.limitedInventory || {}, enhancerInventory: data.enhancerInventory || {}, generatorInventory: data.generatorInventory || {}, medals: data.medals || [], nameTagsOwned: data.nameTagsOwned || 0, hasChangedName: data.hasChangedName || false, tradeHistory: data.tradeHistory || [], highestMoney: data.highestMoney || 1000, highestNetWorth: data.highestNetWorth || 1000, priceHistory: data.priceHistory || [], createdAt: data.createdAt || null };
         } else {
             window.gameState = { username, money: 1000, portfolio: {}, limitedInventory: {}, enhancerInventory: {}, medals: [], nameTagsOwned: 0, hasChangedName: false, tradeHistory: [], highestMoney: 1000, highestNetWorth: 1000, priceHistory: [], createdAt: new Date() };
             await saveGameData();
@@ -404,15 +404,19 @@ async function acceptTrade(tradeId, tradeData) {
                 if ((theirData.limitedInventory?.[item.id]?.length || 0) < item.quantity) { alert(`${tradeData.fromUsername} no longer has enough ${item.name}`); return false; }
             } else if (item.type === 'enhancer') {
                 if ((theirData.enhancerInventory?.[item.id] || 0) < item.quantity) { alert(`${tradeData.fromUsername} no longer has enough ${item.name}`); return false; }
+            } else if (item.type === 'generator') {
+                if ((theirData.generatorInventory?.[item.id] || 0) < item.quantity) { alert(`${tradeData.fromUsername} no longer has enough ${item.name}`); return false; }
             }
         }
 
         const myNewPortfolio = { ...myData.portfolio };
         const myNewLI = JSON.parse(JSON.stringify(myData.limitedInventory || {}));
         const myNewEI = { ...(myData.enhancerInventory || {}) };
+        const myNewGI = { ...(myData.generatorInventory || {}) };
         const theirNewPortfolio = { ...theirData.portfolio };
         const theirNewLI = JSON.parse(JSON.stringify(theirData.limitedInventory || {}));
         const theirNewEI = { ...(theirData.enhancerInventory || {}) };
+        const theirNewGI = { ...(theirData.generatorInventory || {}) };
 
         // I give them theirRequest items
         for (const item of tradeData.theirRequest) {
@@ -422,6 +426,9 @@ async function acceptTrade(tradeId, tradeData) {
             } else if (item.type === 'enhancer') {
                 myNewEI[item.id] = (myNewEI[item.id] || 0) - item.quantity;
                 theirNewEI[item.id] = (theirNewEI[item.id] || 0) + item.quantity;
+            } else if (item.type === 'generator') {
+                myNewGI[item.id] = (myNewGI[item.id] || 0) - item.quantity;
+                theirNewGI[item.id] = (theirNewGI[item.id] || 0) + item.quantity;
             } else {
                 const toMove = (myNewLI[item.id] || []).splice(0, item.quantity);
                 theirNewLI[item.id] = [...(theirNewLI[item.id] || []), ...toMove];
@@ -435,6 +442,9 @@ async function acceptTrade(tradeId, tradeData) {
             } else if (item.type === 'enhancer') {
                 theirNewEI[item.id] = (theirNewEI[item.id] || 0) - item.quantity;
                 myNewEI[item.id] = (myNewEI[item.id] || 0) + item.quantity;
+            } else if (item.type === 'generator') {
+                theirNewGI[item.id] = (theirNewGI[item.id] || 0) - item.quantity;
+                myNewGI[item.id] = (myNewGI[item.id] || 0) + item.quantity;
             } else {
                 const toMove = (theirNewLI[item.id] || []).splice(0, item.quantity);
                 myNewLI[item.id] = [...(myNewLI[item.id] || []), ...toMove];
