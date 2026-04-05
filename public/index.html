@@ -351,7 +351,72 @@ body {
 <div id="game-container" style="display:none;">
     <div id="root"></div>
 </div>
-
+<!-- 🥚 Aurababy Easter Egg Hunt | Code: NettleHide | Nettle Egg | 🌿 Common -->
+<div id="aurababy_egg_NettleHide" onclick="showAurababyEggNettleHide()"
+  style="cursor:pointer;display:inline-block;transition:transform .2s;opacity:0.85;"
+  title="🥚 You found an Easter egg!">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 130" width="80" height="104"
+    style="filter:drop-shadow(0 3px 8px rgba(0,0,0,0.15));">
+    <defs>
+      <radialGradient id="g71" cx="29.5%" cy="34%">
+        <stop offset="0%" stop-color="#fcebee"/>
+        <stop offset="100%" stop-color="#f4a0b5"/>
+      </radialGradient>
+      <clipPath id="ec71">
+        <ellipse cx="50" cy="68" rx="42" ry="58"/>
+      </clipPath>
+    </defs>
+    <ellipse cx="50" cy="68" rx="42" ry="58" fill="url(#g71)"/>
+    <g clip-path="url(#ec71)"><polygon points="62.124355652982146,48 62.124355652982146,62 50,69 37.875644347017854,62 37.87564434701786,48 50,41" fill="none" stroke="rgba(255,255,255,0.32)" stroke-width="1.8"/> <polygon points="56.92820323027551,51 56.92820323027551,59 50,63 43.07179676972449,59 43.07179676972449,51 50,47" fill="rgba(255,255,255,0.18)"/> <polygon points="58.66025403784439,75 58.66025403784439,85 50,90 41.33974596215561,85 41.33974596215562,75 50,70" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/></g>
+    <ellipse cx="30.0" cy="37.8" rx="11.7" ry="10.4" fill="rgba(255,255,255,0.18)"/>
+  </svg>
+</div>
+<script>
+function showAurababyEggNettleHide() {
+  const overlay = document.createElement("div")
+  overlay.style = `
+    position:fixed;inset:0;background:rgba(27,67,50,.7);
+    z-index:9999;display:flex;align-items:center;justify-content:center;font-family:sans-serif;
+  `
+  const box = document.createElement("div")
+  box.style = `
+    background:#fff;border-radius:20px;padding:28px 24px;
+    max-width:340px;width:90%;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.3);
+  `
+  box.innerHTML = `
+    <div style="font-size:2.5em;margin-bottom:8px;">🥚</div>
+    <div style="font-family:serif;font-size:1.5em;font-weight:900;color:#1b4332;margin-bottom:6px;">
+      Nettle Egg
+    </div>
+    <div style="font-size:.8em;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#f4a0b5;background:#f4a0b522;padding:4px 12px;border-radius:20px;display:inline-block;margin-bottom:14px;">
+      🌿 Common
+    </div>
+    <div style="font-size:.9em;color:rgba(27,67,50,.6);margin-bottom:12px;">
+      Enter this code on the Aurababy Egg Hunt page!
+    </div>
+    <div id="ab_code_box_NettleHide"
+      style="background:#f0f8f4;border:2px solid #52b788;border-radius:10px;padding:12px;font-family:monospace;font-size:1.3em;font-weight:900;letter-spacing:2px;color:#1b4332;margin-bottom:14px;">
+      NettleHide
+    </div>
+    <button id="copyEggCode_NettleHide"
+      style="width:100%;padding:11px;background:linear-gradient(135deg,#1b4332,#40916c);color:#fff;font-size:1em;font-weight:800;letter-spacing:2px;border:none;border-radius:12px;cursor:pointer;margin-bottom:8px;">
+      📋 Copy Code
+    </button>
+    <button id="closeEgg_NettleHide"
+      style="width:100%;padding:9px;background:rgba(27,67,50,.08);color:#2d6a4f;font-size:.9em;font-weight:800;border:2px solid rgba(64,145,108,.3);border-radius:12px;cursor:pointer;">
+      ✕ Close
+    </button>
+  `
+  overlay.appendChild(box)
+  document.body.appendChild(overlay)
+  document.getElementById("copyEggCode_NettleHide").onclick = () => {
+    navigator.clipboard.writeText("NettleHide")
+    document.getElementById("copyEggCode_NettleHide").textContent = "✅ Copied!"
+  }
+  document.getElementById("closeEgg_NettleHide").onclick = () => overlay.remove()
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove() }
+}
+</script>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
