@@ -3,201 +3,375 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💰 Aurababy Market - Ultimate Edition</title>
+    <title>🌸 Aurababy Market — Spring Edition</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-    <style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&family=Fredoka+One&display=swap" rel="stylesheet">
 
-/* paste your full CSS from index.html here - unchanged */
+    <!-- SUN + CLOUD DECORATIONS -->
+    <style>
+    /* ════ NATURE ELEMENTS ════ */
+    .easter-sun{position:fixed;top:22px;right:72px;width:72px;height:72px;border-radius:50%;background:radial-gradient(circle,#fffde7 20%,#ffe566 55%,#ffcc00 100%);box-shadow:0 0 48px 22px rgba(255,220,0,.42);animation:sun-pulse 4s ease-in-out infinite;z-index:2;pointer-events:none;}
+    .easter-sun::before{content:'';position:absolute;inset:-18px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 18deg,rgba(255,220,0,.5) 18deg 36deg,transparent 36deg 54deg,rgba(255,220,0,.5) 54deg 72deg,transparent 72deg 90deg,rgba(255,220,0,.5) 90deg 108deg,transparent 108deg 126deg,rgba(255,220,0,.5) 126deg 144deg,transparent 144deg 162deg,rgba(255,220,0,.5) 162deg 180deg,transparent 180deg 198deg,rgba(255,220,0,.5) 198deg 216deg,transparent 216deg 234deg,rgba(255,220,0,.5) 234deg 252deg,transparent 252deg 270deg,rgba(255,220,0,.5) 270deg 288deg,transparent 288deg 306deg,rgba(255,220,0,.5) 306deg 324deg,transparent 324deg 342deg,rgba(255,220,0,.5) 342deg 360deg);animation:spin-rays 12s linear infinite;}
+    @keyframes sun-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+    @keyframes spin-rays{to{transform:rotate(360deg);}}
+    .easter-cloud{position:fixed;border-radius:50px;background:rgba(255,255,255,.82);pointer-events:none;z-index:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.07));}
+    .easter-cloud::before,.easter-cloud::after{content:'';position:absolute;border-radius:50%;background:rgba(255,255,255,.9);}
+    .ec1{width:140px;height:42px;top:40px;left:26px;animation:cdrift1 18s ease-in-out infinite;}
+    .ec1::before{width:70px;height:70px;top:-34px;left:14px;}.ec1::after{width:50px;height:50px;top:-20px;left:72px;}
+    .ec2{width:110px;height:34px;top:74px;left:200px;animation:cdrift2 22s ease-in-out infinite;}
+    .ec2::before{width:58px;height:58px;top:-26px;left:10px;}.ec2::after{width:40px;height:40px;top:-14px;left:58px;}
+    .ec3{width:155px;height:46px;top:30px;left:42%;animation:cdrift1 26s ease-in-out infinite reverse;}
+    .ec3::before{width:80px;height:80px;top:-40px;left:18px;}.ec3::after{width:56px;height:56px;top:-24px;left:82px;}
+    @keyframes cdrift1{0%,100%{transform:translateX(0);}50%{transform:translateX(44px);}}
+    @keyframes cdrift2{0%,100%{transform:translateX(0);}50%{transform:translateX(-36px);}}
+    .easter-petal{position:fixed;top:-20px;pointer-events:none;z-index:3;font-size:var(--ps,1rem);animation:epfall var(--fd,7s) linear infinite;opacity:.7;}
+    @keyframes epfall{0%{transform:translateY(-30px) rotate(0deg);opacity:.8;}100%{transform:translateY(110vh) rotate(540deg);opacity:0;}}
+    .ep1{left:5%;--fd:7s;--ps:1rem;}.ep2{left:14%;--fd:5s;animation-delay:1s;--ps:1.1rem;}.ep3{left:26%;--fd:8s;animation-delay:2s;}
+    .ep4{left:42%;--fd:6s;animation-delay:.5s;--ps:1.1rem;}.ep5{left:59%;--fd:9s;animation-delay:3s;}.ep6{left:74%;--fd:5.5s;animation-delay:1.5s;}
+    .ep7{left:88%;--fd:7s;animation-delay:.8s;}
+    .easter-bee{position:fixed;pointer-events:none;z-index:3;font-size:1.4rem;animation:bee-go var(--bc,16s) linear infinite;}
+    @keyframes bee-go{0%{left:-50px;top:var(--bt,18%);opacity:0;}4%{opacity:1;}94%{opacity:1;}100%{left:calc(100vw+50px);top:var(--bt,18%);opacity:0;}}
+    .bee1{--bt:12%;--bc:13s;}.bee2{--bt:22%;--bc:20s;animation-delay:6s;}
+    .easter-bf{position:fixed;pointer-events:none;z-index:3;font-size:1.6rem;animation:bfly var(--fd,6s) ease-in-out infinite;}
+    @keyframes bfly{0%{transform:translate(0,0);}25%{transform:translate(22px,-18px) rotate(10deg);}50%{transform:translate(44px,0);}75%{transform:translate(22px,18px) rotate(-10deg);}100%{transform:translate(0,0);}}
+    .bf1{top:22%;left:4%;--fd:6s;}.bf2{top:11%;left:58%;--fd:7.5s;animation-delay:.6s;}
+    /* sparks / sparkles */
+    .sparkle{position:fixed;pointer-events:none;z-index:2;font-size:var(--ss,.9rem);animation:sp-anim var(--sd,2s) ease-in-out infinite;}
+    @keyframes sp-anim{0%,100%{opacity:.2;transform:scale(.7);}50%{opacity:1;transform:scale(1.4);}}
+    .sp1{top:7%;left:4%;--sd:2.2s;--ss:1.1rem;}.sp2{top:11%;left:38%;--sd:1.8s;--ss:1.3rem;animation-delay:.5s;}.sp3{top:6%;left:72%;--sd:2.5s;animation-delay:1s;}.sp4{top:20%;left:90%;--sd:3s;--ss:1.2rem;animation-delay:.3s;}
+    /* Floating bg eggs */
+    .floating-egg{position:fixed;border-radius:50% 50% 55% 45%/60% 60% 40% 40%;pointer-events:none;z-index:0;animation:float-egg var(--dur,7s) ease-in-out infinite;opacity:.18;}
+    @keyframes float-egg{0%,100%{transform:translateY(0) rotate(var(--r0,0deg));}50%{transform:translateY(-16px) rotate(var(--r1,5deg));}}
+    .fe1{width:56px;height:72px;background:#f9c74f;top:12%;left:2%;--dur:6s;--r0:-8deg;--r1:4deg;}
+    .fe2{width:48px;height:62px;background:#f94144;top:8%;right:2%;--dur:8s;--r0:5deg;--r1:-3deg;}
+    .fe3{width:64px;height:83px;background:#4cc9f0;top:48%;right:1%;--dur:7s;--r0:-3deg;--r1:8deg;}
+    .fe4{width:52px;height:68px;background:#c77dff;top:62%;left:1%;--dur:9s;--r0:10deg;--r1:-5deg;}
+    </style>
+
+    <style>
+/* ════ CORE RESET & BASE ════ */
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-body { overflow-x: hidden; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+body {
+    overflow-x: hidden;
+    background: linear-gradient(160deg, #87CEEB 0%, #b7e4f7 16%, #d8f3dc 42%, #a8d5a2 68%, #52b788 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+}
+
+/* ════ AUTH ════ */
 #auth-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-#auth-box { background: white; padding: 50px; border-radius: 25px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); max-width: 500px; width: 100%; }
-.auth-title { text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; font-size: 42px; font-weight: 800; }
-.auth-subtitle-small { text-align: center; color: #999; margin-bottom: 30px; font-size: 16px; font-weight: 600; }
-.auth-subtitle { text-align: center; color: #666; margin-bottom: 25px; font-size: 20px; font-weight: 600; }
-.auth-input { width: 100%; padding: 18px; margin: 12px 0; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 16px; font-weight: 600; transition: all 0.3s; }
-.auth-input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1); }
-.auth-button { width: 100%; padding: 18px; margin: 12px 0; border: none; border-radius: 12px; font-size: 18px; font-weight: 800; cursor: pointer; transition: all 0.3s; color: white; }
-.auth-button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
-.primary-button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-.secondary-button { background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%); }
-.guest-button { background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%); }
-.error-message { text-align: center; margin: 15px 0; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #e74c3c; background: #ffebee; }
+#auth-box {
+    background: rgba(255,255,255,.95);
+    padding: 50px;
+    border-radius: 28px;
+    box-shadow: 0 20px 60px rgba(27,67,50,.22);
+    max-width: 500px; width: 100%;
+    border: 2px solid rgba(64,145,108,.2);
+    backdrop-filter: blur(12px);
+}
+.auth-title {
+    text-align: center;
+    background: linear-gradient(135deg, #1b4332 0%, #40916c 50%, #52b788 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 6px; font-size: 38px; font-weight: 800; font-family: 'Fredoka One', cursive;
+}
+.auth-subtitle-small { text-align: center; color: #74c69d; margin-bottom: 28px; font-size: 15px; font-weight: 700; letter-spacing: 2px; }
+.auth-subtitle { text-align: center; color: #2d6a4f; margin-bottom: 22px; font-size: 20px; font-weight: 700; }
+.auth-input { width: 100%; padding: 16px 18px; margin: 10px 0; border: 2px solid rgba(64,145,108,.25); border-radius: 14px; font-size: 15px; font-weight: 600; transition: all .3s; background: rgba(255,255,255,.9); }
+.auth-input:focus { outline: none; border-color: #40916c; box-shadow: 0 0 0 4px rgba(64,145,108,.12); }
+.auth-button { width: 100%; padding: 16px; margin: 10px 0; border: none; border-radius: 14px; font-size: 17px; font-weight: 800; cursor: pointer; transition: all .3s; color: white; font-family: 'Fredoka One', cursive; letter-spacing: 1px; }
+.auth-button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.18); }
+.primary-button { background: linear-gradient(135deg, #1b4332 0%, #40916c 100%); }
+.secondary-button { background: linear-gradient(135deg, #52b788 0%, #2d6a4f 100%); }
+.guest-button { background: linear-gradient(135deg, #f9c74f 0%, #f4845f 100%); color: #1b4332 !important; }
+.error-message { text-align: center; margin: 12px 0; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 700; color: #e63946; background: rgba(230,57,70,.08); border: 1px solid rgba(230,57,70,.3); }
 .loading { text-align: center; padding: 40px; }
-.loading-spinner { border: 5px solid #f3f3f3; border-top: 5px solid #667eea; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin: 20px auto; }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-#game-container { min-height: 100vh; background: #f5f7fa; }
-.game-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 200; }
-.header-left { display: flex; align-items: center; gap: 30px; }
-.header-title { font-size: 32px; font-weight: 800; color: white; }
-.username-display { background: rgba(255,255,255,0.2); padding: 12px 24px; border-radius: 50px; color: white; font-weight: 800; font-size: 18px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 10px; }
-.username-display:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
-.header-right { display: flex; gap: 15px; }
-.header-stat { background: rgba(255,255,255,0.2); padding: 12px 20px; border-radius: 12px; color: white; font-weight: 800; text-align: center; }
-.header-stat-label { font-size: 11px; opacity: 0.8; margin-bottom: 4px; }
-.header-stat-value { font-size: 20px; }
-.logout-btn { background: rgba(231, 76, 60, 0.9); color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: all 0.3s; }
-.logout-btn:hover { background: #c0392b; transform: scale(1.05); }
-.nav-tabs { background: white; padding: 20px 40px; display: flex; gap: 15px; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-.nav-tab { padding: 14px 28px; border: 2px solid #e0e0e0; background: white; border-radius: 12px; font-weight: 800; font-size: 15px; cursor: pointer; transition: all 0.3s; white-space: nowrap; color: #666; }
-.nav-tab:hover { border-color: #667eea; transform: translateY(-2px); }
-.nav-tab.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-color: transparent; }
-.main-content { padding: 30px 40px; max-width: 1600px; margin: 0 auto; }
-.view-title { font-size: 36px; font-weight: 800; color: #2c3e50; margin-bottom: 10px; }
-.view-subtitle { font-size: 16px; color: #7f8c8d; margin-bottom: 30px; font-weight: 600; }
-.banner { padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 25px; font-size: 18px; font-weight: 800; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-.banner-open { background: linear-gradient(135deg, #27ae60 0%, #229954 100%); }
-.banner-closed { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }
-.banner-update { background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); animation: slideDown 0.5s ease-out; }
-@keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.btn { padding: 15px 30px; border: none; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-.btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-.btn-success { background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; }
-.btn-danger { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; }
-.btn-warning { background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white; }
-.btn:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; margin-top: 25px; }
-.card { background: white; border-radius: 20px; padding: 20px; cursor: pointer; transition: all 0.3s; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.08); overflow: hidden; }
-.card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #667eea, #764ba2); transform: scaleX(0); transition: transform 0.3s; }
-.card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(0,0,0,0.15); }
+.loading-spinner { border: 5px solid rgba(64,145,108,.15); border-top: 5px solid #40916c; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin: 20px auto; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* ════ GAME CONTAINER ════ */
+#game-container { min-height: 100vh; }
+
+/* ════ HEADER ════ */
+.game-header {
+    background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 50%, #40916c 100%);
+    padding: 18px 36px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 4px 20px rgba(27,67,50,.35);
+    position: sticky; top: 0; z-index: 200;
+    border-bottom: 3px solid rgba(149,213,178,.4);
+}
+.header-title {
+    font-size: 28px; font-weight: 800; color: white;
+    font-family: 'Fredoka One', cursive; letter-spacing: 2px;
+    text-shadow: 2px 2px 0 rgba(0,0,0,.2);
+}
+.header-left { display: flex; align-items: center; gap: 24px; }
+.username-display { background: rgba(255,255,255,.18); padding: 10px 20px; border-radius: 50px; color: white; font-weight: 800; font-size: 16px; cursor: pointer; transition: all .3s; display: flex; align-items: center; gap: 8px; border: 2px solid rgba(255,255,255,.2); }
+.username-display:hover { background: rgba(255,255,255,.28); transform: scale(1.04); }
+.header-right { display: flex; gap: 12px; align-items: center; }
+.header-stat { background: rgba(255,255,255,.15); padding: 10px 18px; border-radius: 14px; color: white; font-weight: 800; text-align: center; border: 1px solid rgba(255,255,255,.15); }
+.header-stat-label { font-size: 10px; opacity: .8; margin-bottom: 3px; letter-spacing: 1px; text-transform: uppercase; }
+.header-stat-value { font-size: 18px; font-family: 'Fredoka One', cursive; }
+.logout-btn { background: rgba(230,57,70,.85); color: white; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: all .3s; }
+.logout-btn:hover { background: #c0392b; transform: scale(1.04); }
+
+/* ════ NAV ════ */
+.nav-tabs {
+    background: rgba(255,255,255,.88);
+    backdrop-filter: blur(14px);
+    padding: 14px 36px;
+    display: flex; gap: 10px; overflow-x: auto;
+    box-shadow: 0 2px 12px rgba(27,67,50,.1);
+    border-bottom: 2px solid rgba(64,145,108,.15);
+}
+.nav-tab { padding: 11px 22px; border: 2px solid rgba(64,145,108,.2); background: rgba(255,255,255,.7); border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; transition: all .3s; white-space: nowrap; color: #2d6a4f; font-family: 'Poppins', sans-serif; }
+.nav-tab:hover { border-color: #40916c; transform: translateY(-2px); background: rgba(64,145,108,.08); }
+.nav-tab.active { background: linear-gradient(135deg, #1b4332 0%, #40916c 100%); color: white; border-color: transparent; box-shadow: 0 4px 12px rgba(27,67,50,.3); }
+/* Easter tab gets a special look */
+.nav-tab.easter-tab { border-color: #f9c74f; color: #c07000; }
+.nav-tab.easter-tab.active { background: linear-gradient(135deg, #f9c74f 0%, #f4845f 100%); color: #1b4332; border-color: transparent; }
+.nav-tab.easter-tab:hover { border-color: #f3722c; }
+
+/* ════ MAIN CONTENT ════ */
+.main-content { padding: 26px 36px; max-width: 1600px; margin: 0 auto; }
+.view-title { font-size: 32px; font-weight: 800; color: #1b4332; margin-bottom: 8px; font-family: 'Fredoka One', cursive; }
+.view-subtitle { font-size: 15px; color: #2d6a4f; margin-bottom: 26px; font-weight: 600; }
+
+/* ════ BANNERS ════ */
+.banner { padding: 18px; border-radius: 16px; text-align: center; margin-bottom: 22px; font-size: 16px; font-weight: 800; color: white; box-shadow: 0 4px 15px rgba(0,0,0,.1); }
+.banner-open  { background: linear-gradient(135deg, #1b4332 0%, #40916c 100%); }
+.banner-closed{ background: linear-gradient(135deg, #e63946 0%, #c1121f 100%); }
+.banner-update{ background: linear-gradient(135deg, #f9c74f 0%, #f3722c 100%); color: #1b4332; animation: slideDown .5s ease-out; }
+@keyframes slideDown { from { transform: translateY(-40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ════ BUTTONS ════ */
+.btn { padding: 13px 26px; border: none; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; transition: all .3s; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+.btn-primary { background: linear-gradient(135deg, #1b4332, #40916c); color: white; }
+.btn-success { background: linear-gradient(135deg, #1b4332, #52b788); color: white; }
+.btn-danger  { background: linear-gradient(135deg, #e63946, #c1121f); color: white; }
+.btn-warning { background: linear-gradient(135deg, #f9c74f, #f3722c); color: #1b4332; }
+.btn:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,.2); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ════ CARD GRID ════ */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 22px; margin-top: 22px; }
+.card { background: rgba(255,255,255,.92); backdrop-filter: blur(14px); border-radius: 20px; padding: 18px; cursor: pointer; transition: all .3s; position: relative; box-shadow: 0 4px 16px rgba(27,67,50,.1); overflow: hidden; border: 2px solid rgba(64,145,108,.14); }
+.card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #40916c, #52b788, #f9c74f); transform: scaleX(0); transition: transform .3s; }
+.card:hover { transform: translateY(-8px); box-shadow: 0 14px 32px rgba(27,67,50,.18); border-color: rgba(64,145,108,.35); }
 .card:hover::before { transform: scaleX(1); }
-.card-image { width: 100%; height: 180px; object-fit: cover; border-radius: 15px; margin-bottom: 15px; }
-.card-title { font-size: 20px; font-weight: 800; color: #2c3e50; margin-bottom: 10px; }
-.card-price { font-size: 28px; font-weight: 800; margin: 12px 0; color: #667eea; }
-.price-badge { position: absolute; top: 15px; right: 15px; padding: 8px 15px; border-radius: 20px; font-size: 13px; font-weight: 800; color: white; }
-.price-badge-up { background: linear-gradient(135deg, rgba(39,174,96,0.9), rgba(34,153,84,0.9)); }
-.price-badge-down { background: linear-gradient(135deg, rgba(231,76,60,0.9), rgba(192,57,43,0.9)); }
-.card-info { font-size: 14px; color: #7f8c8d; margin: 8px 0; font-weight: 600; }
-.card-button { width: 100%; padding: 14px; margin-top: 12px; border: none; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; transition: all 0.3s; }
+.card-image { width: 100%; height: 175px; object-fit: cover; border-radius: 14px; margin-bottom: 14px; }
+.card-title { font-size: 18px; font-weight: 800; color: #1b4332; margin-bottom: 8px; font-family: 'Fredoka One', cursive; }
+.card-price { font-size: 26px; font-weight: 800; margin: 10px 0; color: #2d6a4f; font-family: 'Fredoka One', cursive; }
+.price-badge { position: absolute; top: 14px; right: 14px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; color: white; }
+.price-badge-up   { background: linear-gradient(135deg, rgba(39,174,96,.9), rgba(34,153,84,.9)); }
+.price-badge-down { background: linear-gradient(135deg, rgba(231,76,60,.9), rgba(192,57,43,.9)); }
+.card-info { font-size: 13px; color: #2d6a4f; margin: 6px 0; font-weight: 600; }
+.card-button { width: 100%; padding: 13px; margin-top: 10px; border: none; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; transition: all .3s; }
+
+/* ════ LIMITEDS ════ */
 .limited-card { border: 3px solid; }
-.limited-card.rarity-common { border-color: #95a5a6; background: linear-gradient(135deg, #bdc3c7, #95a5a6); }
-.limited-card.rarity-rare { border-color: #3498db; background: linear-gradient(135deg, #5dade2, #3498db); }
-.limited-card.rarity-epic { border-color: #9b59b6; background: linear-gradient(135deg, #bb8fce, #9b59b6); }
+.limited-card.rarity-common    { border-color: #95a5a6; background: linear-gradient(135deg, #bdc3c7, #95a5a6); }
+.limited-card.rarity-rare      { border-color: #3498db; background: linear-gradient(135deg, #5dade2, #3498db); }
+.limited-card.rarity-epic      { border-color: #9b59b6; background: linear-gradient(135deg, #bb8fce, #9b59b6); }
 .limited-card.rarity-legendary { border-color: #f39c12; background: linear-gradient(135deg, #f7dc6f, #f39c12); }
-.limited-card.rarity-divine { border-color: #ff00ff; background: linear-gradient(135deg, #ff00ff, #ff1493 50%, #00ffff 100%); animation: divine-glow 3s ease-in-out infinite; }
-@keyframes divine-glow { 0%, 100% { box-shadow: 0 0 30px #ff00ff; } 50% { box-shadow: 0 0 50px #00ffff; } }
-.limited-emoji { font-size: 90px; text-align: center; margin-bottom: 15px; }
-.limited-badge { position: absolute; top: 15px; right: 15px; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 800; }
-.limited-badge.rarity-common { background: rgba(149,165,166,0.9); color: white; }
-.limited-badge.rarity-rare { background: rgba(52,152,219,0.9); color: white; }
-.limited-badge.rarity-epic { background: rgba(155,89,182,0.9); color: white; }
-.limited-badge.rarity-legendary { background: rgba(243,156,18,0.9); color: white; }
-.limited-badge.rarity-divine { background: linear-gradient(90deg, #ff00ff, #00ffff); color: white; }
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); padding: 20px; }
-.modal { background: white; padding: 40px; border-radius: 25px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: modalSlideIn 0.3s ease-out; }
-@keyframes modalSlideIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.modal-title { font-size: 32px; font-weight: 800; color: #2c3e50; margin-bottom: 20px; }
-.modal-chart { margin: 30px 0; padding: 25px; background: #f8f9fa; border-radius: 15px; }
-.modal-buttons { display: flex; gap: 15px; margin-top: 25px; }
-.modal-button { flex: 1; padding: 18px; border: none; border-radius: 12px; font-size: 18px; font-weight: 800; cursor: pointer; transition: all 0.3s; }
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0; }
-.stat-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border-left: 5px solid #667eea; }
-.stat-label { font-size: 14px; color: #7f8c8d; margin-bottom: 10px; font-weight: 600; }
-.stat-value { font-size: 36px; font-weight: 800; color: #2c3e50; }
-.profile-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 50px; border-radius: 25px; color: white; text-align: center; margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-.profile-username { font-size: 56px; font-weight: 800; margin-bottom: 15px; }
-.profile-joined { font-size: 16px; opacity: 0.9; font-weight: 600; }
-.tabs { display: flex; gap: 12px; margin: 25px 0; flex-wrap: wrap; }
-.tab-button { padding: 12px 24px; background: white; border: 2px solid #e0e0e0; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: 800; transition: all 0.3s; color: #666; }
-.tab-button:hover { border-color: #667eea; }
-.tab-button.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-color: transparent; }
-.leaderboard-table { width: 100%; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+.limited-card.rarity-divine    { border-color: #ff00ff; background: linear-gradient(135deg, #ff00ff, #ff1493 50%, #00ffff 100%); animation: divine-glow 3s ease-in-out infinite; }
+@keyframes divine-glow { 0%, 100% { box-shadow: 0 0 28px #ff00ff; } 50% { box-shadow: 0 0 48px #00ffff; } }
+/* Easter divine special */
+.limited-card.easter-special   { border-color: #ffd700; background: linear-gradient(135deg, #fffde7, #ffd700 40%, #f9c74f 70%, #1b4332); animation: egg-hunt-glow 2s ease-in-out infinite; }
+@keyframes egg-hunt-glow { 0%,100% { box-shadow: 0 0 28px rgba(255,215,0,.6); } 50% { box-shadow: 0 0 52px rgba(255,215,0,.9); } }
+.limited-emoji { font-size: 88px; text-align: center; margin-bottom: 14px; }
+.limited-badge { position: absolute; top: 14px; right: 14px; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; }
+.limited-badge.rarity-common    { background: rgba(149,165,166,.9); color: white; }
+.limited-badge.rarity-rare      { background: rgba(52,152,219,.9); color: white; }
+.limited-badge.rarity-epic      { background: rgba(155,89,182,.9); color: white; }
+.limited-badge.rarity-legendary { background: rgba(243,156,18,.9); color: white; }
+.limited-badge.rarity-divine    { background: linear-gradient(90deg, #ff00ff, #00ffff); color: white; }
+
+/* ════ MODALS ════ */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(27,67,50,.7); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(6px); padding: 20px; }
+.modal { background: rgba(255,255,255,.97); padding: 36px; border-radius: 26px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(27,67,50,.3); animation: modalSlideIn .3s ease-out; border: 2px solid rgba(64,145,108,.2); }
+@keyframes modalSlideIn { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal-title { font-size: 30px; font-weight: 800; color: #1b4332; margin-bottom: 18px; font-family: 'Fredoka One', cursive; }
+.modal-chart { margin: 26px 0; padding: 22px; background: rgba(64,145,108,.06); border-radius: 16px; }
+.modal-buttons { display: flex; gap: 14px; margin-top: 22px; }
+.modal-button { flex: 1; padding: 16px; border: none; border-radius: 14px; font-size: 17px; font-weight: 800; cursor: pointer; transition: all .3s; }
+
+/* ════ STATS ════ */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; margin: 26px 0; }
+.stat-card { background: rgba(255,255,255,.92); padding: 26px; border-radius: 20px; box-shadow: 0 4px 14px rgba(27,67,50,.1); border-left: 5px solid #40916c; }
+.stat-label { font-size: 13px; color: #52b788; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.stat-value { font-size: 32px; font-weight: 800; color: #1b4332; font-family: 'Fredoka One', cursive; }
+
+/* ════ PROFILE ════ */
+.profile-header { background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 50%, #40916c 100%); padding: 48px; border-radius: 26px; color: white; text-align: center; margin-bottom: 36px; box-shadow: 0 10px 30px rgba(27,67,50,.25); }
+.profile-username { font-size: 52px; font-weight: 800; margin-bottom: 12px; font-family: 'Fredoka One', cursive; }
+.profile-joined { font-size: 15px; opacity: .9; font-weight: 600; }
+
+/* ════ TABS ════ */
+.tabs { display: flex; gap: 10px; margin: 22px 0; flex-wrap: wrap; }
+.tab-button { padding: 11px 22px; background: rgba(255,255,255,.8); border: 2px solid rgba(64,145,108,.2); border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 800; transition: all .3s; color: #2d6a4f; }
+.tab-button:hover { border-color: #40916c; background: rgba(64,145,108,.08); }
+.tab-button.active { background: linear-gradient(135deg, #1b4332, #40916c); color: white; border-color: transparent; }
+
+/* ════ LEADERBOARD ════ */
+.leaderboard-table { width: 100%; background: rgba(255,255,255,.92); border-radius: 20px; overflow: hidden; box-shadow: 0 4px 16px rgba(27,67,50,.1); }
 .leaderboard-table table { width: 100%; border-collapse: collapse; }
-.leaderboard-table th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: left; font-size: 16px; font-weight: 800; }
-.leaderboard-table td { padding: 18px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; }
-.leaderboard-table tr:hover { background: #f8f9fa; }
-.leaderboard-rank { font-size: 24px; font-weight: 800; color: #667eea; }
-.leaderboard-highlight { background: linear-gradient(135deg, rgba(243,156,18,0.1), rgba(230,126,34,0.1)) !important; border-left: 5px solid #f39c12; }
-.name-change-section { background: white; padding: 30px; border-radius: 20px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
-.name-change-title { font-size: 24px; font-weight: 800; margin-bottom: 15px; color: #2c3e50; }
-.name-change-cost { font-size: 16px; color: #7f8c8d; margin-bottom: 20px; font-weight: 600; }
-.name-input { width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 16px; font-weight: 600; margin-bottom: 15px; }
-.name-input:focus { outline: none; border-color: #667eea; }
-.trade-item { padding: 15px; margin-bottom: 10px; border-radius: 10px; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
-.trade-buy { border-left: 5px solid #3498db; }
+.leaderboard-table th { background: linear-gradient(135deg, #1b4332, #40916c); color: white; padding: 18px; text-align: left; font-size: 15px; font-weight: 800; }
+.leaderboard-table td { padding: 16px 18px; border-bottom: 1px solid rgba(64,145,108,.1); font-weight: 600; }
+.leaderboard-table tr:hover { background: rgba(64,145,108,.06); }
+.leaderboard-rank { font-size: 22px; font-weight: 800; color: #40916c; }
+.leaderboard-highlight { background: linear-gradient(135deg, rgba(249,199,79,.1), rgba(243,114,44,.08)) !important; border-left: 5px solid #f9c74f; }
+
+/* ════ PLAYER CARDS ════ */
+.player-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; margin-top: 22px; }
+.player-card { background: rgba(255,255,255,.92); padding: 18px; border-radius: 16px; box-shadow: 0 4px 14px rgba(27,67,50,.1); cursor: pointer; transition: all .3s; position: relative; }
+.player-card:hover { transform: translateY(-5px); box-shadow: 0 10px 28px rgba(27,67,50,.15); }
+.player-online  { border-left: 5px solid #27ae60; }
+.player-offline { border-left: 5px solid #95a5a6; }
+.player-status { position: absolute; top: 14px; right: 14px; width: 12px; height: 12px; border-radius: 50%; }
+.status-online  { background: #27ae60; box-shadow: 0 0 8px #27ae60; }
+.status-offline { background: #95a5a6; }
+.player-name { font-size: 18px; font-weight: 800; color: #1b4332; margin-bottom: 8px; font-family: 'Fredoka One', cursive; }
+.player-info { font-size: 13px; color: #2d6a4f; margin: 4px 0; font-weight: 600; }
+
+/* ════ TRADE ITEMS ════ */
+.trade-item { padding: 14px; margin-bottom: 10px; border-radius: 12px; background: rgba(255,255,255,.9); box-shadow: 0 2px 8px rgba(27,67,50,.08); display: flex; justify-content: space-between; align-items: center; }
+.trade-buy  { border-left: 5px solid #3498db; }
 .trade-sell { border-left: 5px solid #27ae60; }
 .trade-info { flex: 1; }
-.trade-price { font-size: 20px; font-weight: 800; color: #667eea; }
-.player-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; margin-top: 25px; }
-.player-card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); cursor: pointer; transition: all 0.3s; position: relative; }
-.player-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
-.player-online { border-left: 5px solid #27ae60; }
-.player-offline { border-left: 5px solid #95a5a6; }
-.player-status { position: absolute; top: 15px; right: 15px; width: 12px; height: 12px; border-radius: 50%; }
-.status-online { background: #27ae60; box-shadow: 0 0 10px #27ae60; }
-.status-offline { background: #95a5a6; }
-.player-name { font-size: 20px; font-weight: 800; color: #2c3e50; margin-bottom: 10px; }
-.player-info { font-size: 14px; color: #7f8c8d; margin: 5px 0; }
-@media (max-width: 768px) { .game-header { flex-direction: column; gap: 15px; } .header-left, .header-right { flex-direction: column; width: 100%; } .card-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
-    
-        </style>
+.trade-price { font-size: 18px; font-weight: 800; color: #40916c; font-family: 'Fredoka One', cursive; }
+
+/* ════ NAME CHANGE ════ */
+.name-change-section { background: rgba(64,145,108,.08); padding: 26px; border-radius: 18px; margin-bottom: 26px; border: 2px solid rgba(64,145,108,.2); }
+.name-change-title { font-size: 22px; font-weight: 800; margin-bottom: 12px; color: #1b4332; }
+.name-change-cost  { font-size: 15px; color: #2d6a4f; margin-bottom: 18px; font-weight: 600; }
+.name-input { width: 100%; padding: 14px; border: 2px solid rgba(64,145,108,.25); border-radius: 12px; font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+.name-input:focus { outline: none; border-color: #40916c; box-shadow: 0 0 0 4px rgba(64,145,108,.12); }
+
+/* ════ EASTER SPECIAL ════ */
+.easter-section-banner {
+    background: linear-gradient(135deg, #fffde7, rgba(249,199,79,.3), rgba(82,183,136,.2));
+    border: 2px solid rgba(249,199,79,.5);
+    border-radius: 20px; padding: 22px 28px; margin-bottom: 28px;
+    display: flex; align-items: center; gap: 18px;
+    box-shadow: 0 4px 18px rgba(249,199,79,.2);
+}
+.egg-code-popup-overlay {
+    position: fixed; inset: 0; background: rgba(27,67,50,.75); z-index: 9999;
+    display: flex; align-items: center; justify-content: center; backdrop-filter: blur(7px);
+}
+.egg-code-popup {
+    background: white; border-radius: 28px; padding: 36px 32px; max-width: 420px; width: 90%;
+    text-align: center; box-shadow: 0 20px 60px rgba(27,67,50,.3);
+    animation: modalSlideIn .4s cubic-bezier(.34,1.56,.64,1) both;
+    position: relative; overflow: hidden;
+    border: 3px solid #ffd700;
+}
+.egg-code-popup::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
+    background: linear-gradient(90deg, #ffd700, #f9c74f, #40916c, #ffd700); background-size: 200% 100%; animation: bar-spin 2s linear infinite; }
+@keyframes bar-spin { 0% { background-position: 0%; } 100% { background-position: 200%; } }
+
+/* ════ RESPONSIVE ════ */
+@media (max-width: 768px) {
+    .game-header { flex-direction: column; gap: 12px; padding: 14px 18px; }
+    .header-left, .header-right { flex-direction: column; width: 100%; }
+    .card-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+    .main-content { padding: 18px 14px; }
+    .nav-tabs { padding: 10px 14px; }
+}
+    </style>
 </head>
 <body>
-    <div id="auth-container">
-        <div id="auth-box">
-            <h1 class="auth-title">💰 Aurababy Market</h1>
-            <p class="auth-subtitle-small">Ultimate Trading Experience</p>
 
-            <div id="login-form">
-                <h3 class="auth-subtitle">Welcome Back!</h3>
-                <div id="login-error" class="error-message" style="display:none;"></div>
-                <input type="text" id="login-username" class="auth-input" placeholder="Username"
-                    onkeydown="if(event.key==='Enter')loginUser()">
-                <input type="password" id="login-password" class="auth-input" placeholder="Password"
-                    onkeydown="if(event.key==='Enter')loginUser()">
-                <button onclick="loginUser()" class="auth-button primary-button">Login</button>
-                <button onclick="showSignup()" class="auth-button secondary-button">Create Account</button>
-                <button onclick="loginAnonymous()" class="auth-button guest-button">Play as Guest</button>
-            </div>
+<!-- NATURE DECORATIONS -->
+<div class="easter-sun"></div>
+<div class="easter-cloud ec1"></div>
+<div class="easter-cloud ec2"></div>
+<div class="easter-cloud ec3"></div>
+<div class="easter-petal ep1">🌸</div>
+<div class="easter-petal ep2">🌺</div>
+<div class="easter-petal ep3">🌼</div>
+<div class="easter-petal ep4">🌸</div>
+<div class="easter-petal ep5">🌷</div>
+<div class="easter-petal ep6">🌼</div>
+<div class="easter-petal ep7">🌺</div>
+<div class="easter-bee bee1">🐝</div>
+<div class="easter-bee bee2">🐝</div>
+<div class="easter-bf bf1">🦋</div>
+<div class="easter-bf bf2">🦋</div>
+<div class="sparkle sp1">✨</div>
+<div class="sparkle sp2">🌟</div>
+<div class="sparkle sp3">✨</div>
+<div class="sparkle sp4">⭐</div>
+<div class="floating-egg fe1"></div>
+<div class="floating-egg fe2"></div>
+<div class="floating-egg fe3"></div>
+<div class="floating-egg fe4"></div>
 
-            <div id="signup-form" style="display:none;">
-                <h3 class="auth-subtitle">Create Your Account</h3>
-                <div id="signup-error" class="error-message" style="display:none;"></div>
-                <input type="text" id="signup-username" class="auth-input" placeholder="Username (3-20 characters)">
-                <input type="password" id="signup-password" class="auth-input" placeholder="Password (min 6 characters)">
-                <input type="password" id="signup-confirm" class="auth-input" placeholder="Confirm Password">
-                <button onclick="signupUser()" class="auth-button primary-button">Create Account</button>
-                <button onclick="showLogin()" class="auth-button secondary-button">Back to Login</button>
-            </div>
+<!-- ════ AUTH ════ -->
+<div id="auth-container">
+    <div id="auth-box">
+        <h1 class="auth-title">🌸 Aurababy Market</h1>
+        <p class="auth-subtitle-small">🥚 SPRING EDITION 🐰</p>
 
-            <div id="loading-screen" style="display:none;">
-                <div class="loading">
-                    <div class="loading-spinner"></div>
-                    <h3>Loading your game...</h3>
-                </div>
+        <div id="login-form">
+            <h3 class="auth-subtitle">Welcome Back!</h3>
+            <div id="login-error" class="error-message" style="display:none;"></div>
+            <input type="text" id="login-username" class="auth-input" placeholder="Username"
+                onkeydown="if(event.key==='Enter')loginUser()">
+            <input type="password" id="login-password" class="auth-input" placeholder="Password"
+                onkeydown="if(event.key==='Enter')loginUser()">
+            <button onclick="loginUser()" class="auth-button primary-button">🌿 Login</button>
+            <button onclick="showSignup()" class="auth-button secondary-button">🌱 Create Account</button>
+            <button onclick="loginAnonymous()" class="auth-button guest-button">🐰 Play as Guest</button>
+        </div>
+
+        <div id="signup-form" style="display:none;">
+            <h3 class="auth-subtitle">Create Your Account</h3>
+            <div id="signup-error" class="error-message" style="display:none;"></div>
+            <input type="text" id="signup-username" class="auth-input" placeholder="Username (3-20 characters)">
+            <input type="password" id="signup-password" class="auth-input" placeholder="Password (min 6 characters)">
+            <input type="password" id="signup-confirm" class="auth-input" placeholder="Confirm Password">
+            <button onclick="signupUser()" class="auth-button primary-button">🌸 Create Account</button>
+            <button onclick="showLogin()" class="auth-button secondary-button">← Back to Login</button>
+        </div>
+
+        <div id="loading-screen" style="display:none;">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <h3 style="color:#2d6a4f;margin-top:10px;">Loading your market...</h3>
             </div>
         </div>
     </div>
+</div>
 
-    <div id="game-container" style="display:none;">
-        <div id="root"></div>
-    </div>
+<!-- ════ GAME ════ -->
+<div id="game-container" style="display:none;">
+    <div id="root"></div>
+</div>
 
-    <!-- Firebase (must load before app-core.js) -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <!-- React (must load before script.js) -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- React -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-    <!-- Game data (plain JS, no Babel needed) -->
-    <script src="limiteds.js"></script>
-    <script src="enhancers.js"></script>
-    <script src="generators.js"></script>
+<!-- Game data -->
+<script src="limiteds.js"></script>
+<script src="enhancers.js"></script>
+<script src="generators.js"></script>
 
-    <!-- Core game logic: Firebase init, auth functions, save/load, multiplayer.
-         Plain JS so loginUser() etc are available IMMEDIATELY when buttons are clicked,
-         before Babel finishes compiling script.js -->
-    <script src="app-core.js"></script>
+<!-- Core -->
+<script src="app-core.js"></script>
 
-    <!-- React UI (compiled by Babel) -->
-    <script type="text/babel" src="script.js"></script>
+<!-- React UI -->
+<script type="text/babel" src="script.js"></script>
 </body>
 </html>
